@@ -11,13 +11,16 @@ import qualified Data.Foldable as F
 import Data.Hashable
 import Data.Functor.Identity
 
-catMaybes :: Witherable t => t (Maybe a) -> t a
-catMaybes = runIdentity . wither pure
-
+-- | Like `traverse`, but you can remove elements instead of updating them.
+-- @traverse f = wither (fmap Just . f)@
+-- Minimal complete definition: `wither` or `catMaybes`.
 class T.Traversable t => Witherable t where
-  -- | Like `traverse`, but you can remove elements instead of updating them.
-  -- @traverse f = wither (fmap Just . f)@
+
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
+  wither = fmap catMaybes . traverse
+
+  catMaybes :: Witherable t => t (Maybe a) -> t a
+  catMaybes = runIdentity . wither pure
 
 instance Witherable Maybe where
   wither _ Nothing = pure Nothing
