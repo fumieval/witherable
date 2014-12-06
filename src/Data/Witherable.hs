@@ -1,7 +1,7 @@
 module Data.Witherable where
 import qualified Data.Maybe as Maybe
-import qualified Data.IntMap.Strict as StrictIM
-import qualified Data.Map.Strict as StrictM
+import qualified Data.IntMap.Lazy as IM
+import qualified Data.Map.Lazy as M
 import qualified Data.Sequence as S
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
@@ -17,10 +17,18 @@ import Data.Functor.Identity
 class T.Traversable t => Witherable t where
 
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
-  wither = fmap catMaybes . traverse
+  wither f = fmap catMaybes . T.traverse f
 
   catMaybes :: Witherable t => t (Maybe a) -> t a
   catMaybes = runIdentity . wither pure
+
+  witherM :: Monad m => (a -> m (Maybe b)) -> t a -> m (t b)
+  witherM f = unwrapMonad . wither (WrapMonad . f)
+
+-- | 'blightM' is 'witherM' with its arguments flipped.
+blightM :: (Monad m, Witherable t) => t a -> (a -> m (Maybe b)) -> m (t b)
+blightM = flip witherM
+{-# INLINE blightM #-}
 
 instance Witherable Maybe where
   wither _ Nothing = pure Nothing
@@ -29,11 +37,11 @@ instance Witherable Maybe where
 instance Witherable [] where
   wither f = fmap Maybe.catMaybes . T.traverse f
 
-instance Witherable StrictIM.IntMap where
-  wither f = fmap StrictIM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . StrictIM.toList
+instance Witherable IM.IntMap where
+  wither f = fmap IM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . IM.toList
 
-instance Ord k => Witherable (StrictM.Map k) where
-  wither f = fmap StrictM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . StrictM.toList
+instance Ord k => Witherable (M.Map k) where
+  wither f = fmap M.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . M.toList
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
   wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
