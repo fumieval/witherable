@@ -12,6 +12,7 @@ import qualified Data.Foldable as F
 import Data.Hashable
 import Data.Functor.Identity
 import Control.Monad.Trans.Maybe
+import Data.Monoid
 
 -- | Like `traverse`, but you can remove elements instead of updating them.
 -- @traverse f = wither (fmap Just . f)@
@@ -49,6 +50,9 @@ instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
   wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
 
 #if !(MIN_VERSION_base(4,7,0))
+instance F.Foldable (Const r) where
+  foldMap _ _ = mempty
+
 instance T.Traversable (Const r) where
   traverse _ (Const r) = pure (Const r)
 #endif
