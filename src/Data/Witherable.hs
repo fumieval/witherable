@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Data.Witherable where
 import qualified Data.Maybe as Maybe
 import qualified Data.IntMap.Lazy as IM
@@ -46,6 +47,11 @@ instance Ord k => Witherable (M.Map k) where
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
   wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
+
+#if !(MIN_VERSION_base(4,7,0))
+instance Traversable (Const r) where
+  traverse _ (Const r) = pure (Const r)
+#endif
 
 instance Witherable (Const r) where
   wither _ (Const r) = pure (Const r)
