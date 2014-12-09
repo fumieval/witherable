@@ -10,6 +10,7 @@ import qualified Data.Traversable as T
 import qualified Data.Foldable as F
 import Data.Hashable
 import Data.Functor.Identity
+import Control.Monad.Trans.Maybe
 
 -- | Like `traverse`, but you can remove elements instead of updating them.
 -- @traverse f = wither (fmap Just . f)@
@@ -22,11 +23,11 @@ class T.Traversable t => Witherable t where
   catMaybes :: Witherable t => t (Maybe a) -> t a
   catMaybes = runIdentity . wither pure
 
-  witherM :: Monad m => (a -> m (Maybe b)) -> t a -> m (t b)
-  witherM f = unwrapMonad . wither (WrapMonad . f)
+  witherM :: Monad m => (a -> MaybeT m b) -> t a -> m (t b)
+  witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
 
 -- | 'blightM' is 'witherM' with its arguments flipped.
-blightM :: (Monad m, Witherable t) => t a -> (a -> m (Maybe b)) -> m (t b)
+blightM :: (Monad m, Witherable t) => t a -> (a -> MaybeT m b) -> m (t b)
 blightM = flip witherM
 {-# INLINE blightM #-}
 
