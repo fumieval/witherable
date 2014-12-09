@@ -49,7 +49,7 @@ instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
   wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
 
 #if !(MIN_VERSION_base(4,7,0))
-instance Traversable (Const r) where
+instance T.Traversable (Const r) where
   traverse _ (Const r) = pure (Const r)
 #endif
 
