@@ -41,13 +41,13 @@ instance Witherable [] where
   wither f = fmap Maybe.catMaybes . T.traverse f
 
 instance Witherable IM.IntMap where
-  wither f = fmap IM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . IM.toList
+  wither f = fmap IM.fromAscList . wither (\(i, a) -> fmap ((,) i) <$> f a) . IM.toList
 
 instance Ord k => Witherable (M.Map k) where
-  wither f = fmap M.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . M.toList
+  wither f = fmap M.fromAscList . wither (\(i, a) -> fmap ((,) i) <$> f a) . M.toList
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
-  wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
+  wither f = fmap HM.fromAscList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
 
 #if !(MIN_VERSION_base(4,7,0))
 instance F.Foldable (Const r) where
