@@ -117,7 +117,7 @@ instance F.Foldable (Const r) where
 instance T.Traversable (Const r) where
   traverse _ (Const r) = pure (Const r)
 
-instance Traversable (Either a) where
+instance T.Traversable (Either a) where
   traverse _ (Left x) = pure (Left x)
   traverse f (Right y) = Right <$> f y
 #endif
