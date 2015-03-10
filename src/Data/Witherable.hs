@@ -25,14 +25,19 @@ import Data.Hashable
 import Data.Functor.Identity
 import Control.Monad.Trans.Maybe
 import Data.Monoid
+#if (MIN_VERSION_base(4,7,0))
+import Data.Proxy
+#endif
 
 -- | Like `traverse`, but you can remove elements instead of updating them.
 --
 -- @traverse f ≡ wither (fmap Just . f)@
 --
 -- A definition of 'wither' must satisfy the following laws:
+--
 -- [/identity/]
---   @wither (pure . Just) = pure@
+--   @wither (pure . Just) ≡ pure@
+--
 -- [/composition/]
 --   @Compose . fmap (wither f) . wither g ≡ wither (Compose . fmap (maybe (pure Nothing) f) . g)@
 --
@@ -100,12 +105,21 @@ instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
   filter = HM.filter
   {-# INLINABLE filter #-}
 
+#if (MIN_VERSION_base(4,7,0))
+instance Witherable Proxy where
+  wither _ Proxy = pure Proxy
+#endif
+
 #if !(MIN_VERSION_base(4,7,0))
 instance F.Foldable (Const r) where
   foldMap _ _ = mempty
 
 instance T.Traversable (Const r) where
   traverse _ (Const r) = pure (Const r)
+
+instance Traversable (Either a) where
+  traverse _ (Left x) = pure (Left x)
+  traverse f (Right y) = Right <$> f y
 #endif
 
 instance Witherable (Const r) where
