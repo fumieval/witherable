@@ -117,6 +117,10 @@ instance F.Foldable (Const r) where
 instance T.Traversable (Const r) where
   traverse _ (Const r) = pure (Const r)
 
+instance F.Foldable (Either a) where
+  foldMap _ (Left _) = mempty
+  foldMap f (Right a) = f a
+
 instance T.Traversable (Either a) where
   traverse _ (Left x) = pure (Left x)
   traverse f (Right y) = Right <$> f y
@@ -129,7 +133,11 @@ instance Witherable (Const r) where
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
   {-# INLINABLE wither #-}
+  filter = V.filter
+  {-# INLINABLE filter #-}
 
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
   {-# INLINABLE wither #-}
+  filter = S.filter
+  {-# INLINABLE filter #-}
