@@ -31,19 +31,19 @@ import Data.Proxy
 
 -- | Like `traverse`, but you can remove elements instead of updating them.
 --
--- @traverse f ≡ wither (fmap Just . f)@
+-- @'traverse' f ≡ 'wither' ('fmap' 'Just' . f)@
 --
 -- A definition of 'wither' must satisfy the following laws:
 --
 -- [/identity/]
---   @wither (pure . Just) ≡ pure@
+--   @'wither' ('pure' . Just) ≡ 'pure'@
 --
 -- [/composition/]
---   @Compose . fmap (wither f) . wither g ≡ wither (Compose . fmap (maybe (pure Nothing) f) . g)@
+--   @Compose . fmap ('wither' f) . 'wither' g ≡ 'wither' (Compose . fmap ('wither' f) . g)@
 --
 -- Parametricity implies the naturality law:
 --
--- @t . wither f = wither (t . f)@
+--   @t . 'wither' f = 'wither' (t . f)@
 --
 -- Minimal complete definition: `wither` or `catMaybes`.
 -- The default definitions can be overriden for efficiency.
