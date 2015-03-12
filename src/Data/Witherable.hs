@@ -52,17 +52,24 @@ class T.Traversable t => Witherable t where
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
   wither f = fmap catMaybes . T.traverse f
 
+  mapMaybe :: (a -> Maybe b) -> t a -> t b
+  mapMaybe f = runIdentity . wither (Identity . f)
+  {-# INLINE mapMaybe #-}
+
   catMaybes :: t (Maybe a) -> t a
-  catMaybes = runIdentity . wither pure
+  catMaybes = mapMaybe id
+  {-# INLINE catMaybes #-}
 
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA f = wither (\a -> (\b -> if b then Just a else Nothing) <$> f a)
 
   filter :: (a -> Bool) -> t a -> t a
   filter f = runIdentity . filterA (Identity . f)
+  {-# INLINE filter #-}
 
 witherM :: (Witherable t, Monad m) => (a -> MaybeT m b) -> t a -> m (t b)
 witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
+{-# INLINE witherM #-}
 
 -- | 'blightM' is 'witherM' with its arguments flipped.
 blightM :: (Monad m, Witherable t) => t a -> (a -> MaybeT m b) -> m (t b)
@@ -90,12 +97,16 @@ instance Witherable [] where
 instance Witherable IM.IntMap where
   wither f = fmap IM.fromAscList . wither (\(i, a) -> fmap ((,) i) <$> f a) . IM.toList
   {-# INLINABLE wither #-}
+  mapMaybe = IM.mapMaybe
+  {-# INLINE mapMaybe #-}
   filter = IM.filter
-  {-# INLINABLE filter #-}
+  {-# INLINE filter #-}
 
 instance Ord k => Witherable (M.Map k) where
   wither f = fmap M.fromAscList . wither (\(i, a) -> fmap ((,) i) <$> f a) . M.toList
   {-# INLINABLE wither #-}
+  mapMaybe = M.mapMaybe
+  {-# INLINE mapMaybe #-}
   filter = M.filter
   {-# INLINABLE filter #-}
 
