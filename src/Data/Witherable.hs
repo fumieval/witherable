@@ -45,8 +45,9 @@ import Data.Proxy
 --
 --   @t . 'wither' f = 'wither' (t . f)@
 --
--- Minimal complete definition: `wither` or `catMaybes`.
+-- Minimal complete definition: `wither` or `mapMaybe` or `catMaybes`.
 -- The default definitions can be overriden for efficiency.
+
 class T.Traversable t => Witherable t where
 
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
@@ -87,24 +88,24 @@ instance Monoid e => Witherable (Either e) where
   {-# INLINABLE wither #-}
 
 instance Witherable [] where
-  wither f = fmap Maybe.catMaybes . T.traverse f
-  {-# INLINABLE wither #-}
+  wither f = go where
+    go (x:xs) = maybe id (:) <$> f x <*> go xs
+    go [] = pure []
+  {-# INLINE wither #-}
+  mapMaybe = Maybe.mapMaybe
+  {-# INLINE mapMaybe #-}
   catMaybes = Maybe.catMaybes
-  {-# INLINABLE catMaybes #-}
+  {-# INLINE catMaybes #-}
   filter = Prelude.filter
-  {-# INLINABLE filter #-}
+  {-# INLINE filter #-}
 
 instance Witherable IM.IntMap where
-  wither f = fmap IM.fromAscList . wither (\(i, a) -> fmap ((,) i) <$> f a) . IM.toList
-  {-# INLINABLE wither #-}
   mapMaybe = IM.mapMaybe
   {-# INLINE mapMaybe #-}
   filter = IM.filter
   {-# INLINE filter #-}
 
 instance Ord k => Witherable (M.Map k) where
-  wither f = fmap M.fromAscList . wither (\(i, a) -> fmap ((,) i) <$> f a) . M.toList
-  {-# INLINABLE wither #-}
   mapMaybe = M.mapMaybe
   {-# INLINE mapMaybe #-}
   filter = M.filter

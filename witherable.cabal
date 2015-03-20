@@ -1,5 +1,5 @@
 name:                witherable
-version:             0.1.2
+version:             0.1.2.1
 synopsis:            Generalization of filter and catMaybes
 -- description:
 homepage:            https://github.com/fumieval/witherable
