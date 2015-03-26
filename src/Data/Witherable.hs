@@ -6,10 +6,9 @@
 -- License     :  BSD3
 --
 -- Maintainer  :  Fumiaki Kinoshita <fumiexcel@gmail.com>
--- Stability   :  experimental
+-- Stability   :  provisional
 -- Portability :  non-portable
 --
--- This module generalizes filterable containers.
 -----------------------------------------------------------------------------
 module Data.Witherable where
 import qualified Data.Maybe as Maybe
