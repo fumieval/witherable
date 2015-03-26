@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, DeriveFunctor, DeriveFoldable, DeriveTraversable, StandaloneDeriving, UndecidableInstances, FlexibleContexts #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Witherable
@@ -46,7 +46,7 @@ import Data.Proxy
 --   @t . 'wither' f = 'wither' (t . f)@
 --
 -- Minimal complete definition: `wither` or `mapMaybe` or `catMaybes`.
--- The default definitions can be overriden for efficiency.
+-- The default definitions can be overridden for efficiency.
 
 class T.Traversable t => Witherable t where
 
@@ -109,13 +109,13 @@ instance Ord k => Witherable (M.Map k) where
   mapMaybe = M.mapMaybe
   {-# INLINE mapMaybe #-}
   filter = M.filter
-  {-# INLINABLE filter #-}
+  {-# INLINE filter #-}
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
   wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
   {-# INLINABLE wither #-}
   filter = HM.filter
-  {-# INLINABLE filter #-}
+  {-# INLINE filter #-}
 
 #if (MIN_VERSION_base(4,7,0))
 instance Witherable Proxy where
@@ -146,10 +146,25 @@ instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
   {-# INLINABLE wither #-}
   filter = V.filter
-  {-# INLINABLE filter #-}
+  {-# INLINE filter #-}
 
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
   {-# INLINABLE wither #-}
   filter = S.filter
-  {-# INLINABLE filter #-}
+  {-# INLINE filter #-}
+
+-- | Traversable containers which hold 'Maybe' are witherable.
+newtype Chipped t a = Chipped { getChipped :: t (Maybe a) } deriving (Functor, F.Foldable, T.Traversable)
+
+deriving instance Show (t (Maybe a)) => Show (Chipped t a)
+deriving instance Read (t (Maybe a)) => Read (Chipped t a)
+deriving instance Eq (t (Maybe a)) => Eq (Chipped t a)
+deriving instance Ord (t (Maybe a)) => Ord (Chipped t a)
+
+instance Applicative t => Applicative (Chipped t) where
+  pure a = Chipped (pure (pure a))
+  Chipped f <*> Chipped t = Chipped (liftA2 (<*>) f t)
+
+instance T.Traversable t => Witherable (Chipped t) where
+  wither f = fmap Chipped . T.traverse (wither f) . getChipped
