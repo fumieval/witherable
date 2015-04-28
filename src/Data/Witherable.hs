@@ -18,12 +18,15 @@ import qualified Data.Map.Lazy as M
 import qualified Data.Sequence as S
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Set as Set
+import qualified Data.HashSet as HSet
 import Control.Applicative
 import qualified Data.Traversable as T
 import qualified Data.Foldable as F
 import Data.Hashable
 import Data.Functor.Identity
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.State.Strict
 import Data.Monoid
 #if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
@@ -76,6 +79,30 @@ witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
 blightM :: (Monad m, Witherable t) => t a -> (a -> MaybeT m b) -> m (t b)
 blightM = flip witherM
 {-# INLINE blightM #-}
+
+-- | Removes duplicate elements from a list, keeping only the first
+--   occurrence. This is exponentailly quicker than using
+--   'Data.List.nub' from 'Data.List'.
+ordNub :: (Witherable t, Ord a) => t a -> t a
+ordNub t = evalState (filterA f t) Set.empty
+  where
+    f a = state $ \s ->
+      case Set.member a s of
+        True  -> (False, s)
+        False -> (True, Set.insert a s)
+{-# INLINE ordNub #-}
+
+-- | Removes duplicate elements from a list, keeping only the first
+--   occurrence. This is usually faster than 'ordNub', especially for
+--   things that have a slow comparion (like 'String')
+hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
+hashNub t = evalState (filterA f t) HSet.empty
+  where
+    f a = state $ \s ->
+      case HSet.member a s of
+        True  -> (False, s)
+        False -> (True, HSet.insert a s)
+{-# INLINE hashNub #-}
 
 instance Witherable Maybe where
   wither _ Nothing = pure Nothing
