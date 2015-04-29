@@ -48,8 +48,6 @@ import Data.Proxy
 --
 --   @t . 'wither' f = 'wither' (t . f)@
 --
--- Minimal complete definition: `wither` or `mapMaybe` or `catMaybes`.
--- The default definitions can be overridden for efficiency.
 
 class T.Traversable t => Witherable t where
 
@@ -70,6 +68,9 @@ class T.Traversable t => Witherable t where
   filter :: (a -> Bool) -> t a -> t a
   filter f = runIdentity . filterA (Identity . f)
   {-# INLINE filter #-}
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
+  {-# MINIMAL wither | mapMaybe | catMaybes #-}
+#endif
 
 witherM :: (Witherable t, Monad m) => (a -> MaybeT m b) -> t a -> m (t b)
 witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
