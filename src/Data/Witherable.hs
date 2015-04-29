@@ -83,7 +83,7 @@ blightM = flip witherM
 {-# INLINE blightM #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
---   occurrence. This is exponentailly quicker than using
+--   occurrence. This is exponentially quicker than using
 --   'Data.List.nub' from 'Data.List'.
 ordNub :: (Witherable t, Ord a) => t a -> t a
 ordNub t = evalState (filterA f t) Set.empty
