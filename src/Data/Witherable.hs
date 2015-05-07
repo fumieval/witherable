@@ -28,6 +28,7 @@ import Data.Functor.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.State.Strict
 import Data.Monoid
+import Data.Orphans ()
 #if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
 #endif
@@ -148,22 +149,6 @@ instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
 #if (MIN_VERSION_base(4,7,0))
 instance Witherable Proxy where
   wither _ Proxy = pure Proxy
-#endif
-
-#if !(MIN_VERSION_base(4,7,0))
-instance F.Foldable (Const r) where
-  foldMap _ _ = mempty
-
-instance T.Traversable (Const r) where
-  traverse _ (Const r) = pure (Const r)
-
-instance F.Foldable (Either a) where
-  foldMap _ (Left _) = mempty
-  foldMap f (Right a) = f a
-
-instance T.Traversable (Either a) where
-  traverse _ (Left x) = pure (Left x)
-  traverse f (Right y) = Right <$> f y
 #endif
 
 instance Witherable (Const r) where
