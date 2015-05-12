@@ -12,7 +12,26 @@
 -- Portability :  non-portable
 --
 -----------------------------------------------------------------------------
-module Data.Witherable where
+module Data.Witherable (Witherable(..)
+  , ordNub
+  , hashNub
+  -- * Generalization
+  , FilterLike, Filter, FilterLike', Filter'
+  , witherOf
+  , mapMaybeOf
+  , catMaybesOf
+  , filterAOf
+  , filterOf
+  , ordNubOf
+  , hashNubOf
+   -- * Cloning
+  , cloneFilter
+  , Dungeon(..)
+  -- * Witherable from Traversable
+  , Chipped(..)
+  )
+
+where
 import qualified Data.Maybe as Maybe
 import qualified Data.IntMap.Lazy as IM
 import qualified Data.Map.Lazy as M
@@ -38,6 +57,22 @@ type FilterLike f s t a b = (a -> f (Maybe b)) -> s -> f t
 type Filter s t a b = forall f. Applicative f => FilterLike f s t a b
 type FilterLike' f s a = FilterLike f s s a a
 type Filter' s a = forall f. Applicative f => FilterLike' f s a
+
+newtype Dungeon a b t = Dungeon { runDungeon :: forall f. Applicative f => (a -> f (Maybe b)) -> f t }
+
+instance Functor (Dungeon a b) where
+  fmap f (Dungeon k) = Dungeon (fmap f . k)
+  {-# INLINE fmap #-}
+
+instance Applicative (Dungeon a b) where
+  pure a = Dungeon $ const (pure a)
+  {-# INLINE pure #-}
+  Dungeon f <*> Dungeon g = Dungeon $ \h -> f h <*> g h
+  {-# INLINE (<*>) #-}
+
+cloneFilter :: FilterLike (Dungeon a b) s t a b -> Filter s t a b
+cloneFilter l f = (`runDungeon` f) . l (\a -> Dungeon $ \g -> g a)
+{-# INLINABLE cloneFilter #-}
 
 -- | 'witherOf' is actually 'id', but left for consistency.
 witherOf :: FilterLike f s t a b -> (a -> f (Maybe b)) -> s -> f t
