@@ -150,23 +150,23 @@ blightM = flip witherM
 
 -- | Remove the duplicate elements through a filter.
 ordNubOf :: Ord a => FilterLike' (State (Set.Set a)) s a -> s -> s
-ordNubOf w t = evalState (filterAOf w f t) Set.empty
+ordNubOf w t = evalState (w f t) Set.empty
   where
     f a = state $ \s ->
       case Set.member a s of
-        True  -> (False, s)
-        False -> (True, Set.insert a s)
+        True  -> (Nothing, s)
+        False -> (Just a, Set.insert a s)
 {-# INLINE ordNubOf #-}
 
 -- | Remove the duplicate elements through a filter.
 -- It is often faster than 'ordNubOf', especially when the comparison is expensive.
 hashNubOf :: (Eq a, Hashable a) => FilterLike' (State (HSet.HashSet a)) s a -> s -> s
-hashNubOf w t = evalState (filterAOf w f t) HSet.empty
+hashNubOf w t = evalState (w f t) HSet.empty
   where
     f a = state $ \s ->
       case HSet.member a s of
-        True  -> (False, s)
-        False -> (True, HSet.insert a s)
+        True  -> (Nothing, s)
+        False -> (Just a, HSet.insert a s)
 {-# INLINE hashNubOf #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
