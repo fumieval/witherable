@@ -126,7 +126,7 @@ class T.Traversable t => Witherable t where
   {-# INLINE mapMaybe #-}
 
   catMaybes :: t (Maybe a) -> t a
-  catMaybes = catMaybesOf wither
+  catMaybes = mapMaybe id
   {-# INLINE catMaybes #-}
 
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
