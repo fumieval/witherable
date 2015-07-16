@@ -13,6 +13,8 @@
 --
 -----------------------------------------------------------------------------
 module Data.Witherable (Witherable(..)
+  , witherM
+  , blightM
   , ordNub
   , hashNub
   -- * Generalization
