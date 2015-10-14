@@ -54,6 +54,7 @@ import Data.Orphans ()
 #if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
 #endif
+import GHC.Base (build)
 
 type FilterLike f s t a b = (a -> f (Maybe b)) -> s -> f t
 type Filter s t a b = forall f. Applicative f => FilterLike f s t a b
@@ -154,10 +155,9 @@ blightM = flip witherM
 ordNubOf :: Ord a => FilterLike' (State (Set.Set a)) s a -> s -> s
 ordNubOf w t = evalState (w f t) Set.empty
   where
-    f a = state $ \s ->
-      case Set.member a s of
-        True  -> (Nothing, s)
-        False -> (Just a, Set.insert a s)
+    f a = state $ \s -> if Set.member a s
+      then (Nothing, s)
+      else (Just a, Set.insert a s)
 {-# INLINE ordNubOf #-}
 
 -- | Remove the duplicate elements through a filter.
@@ -165,10 +165,9 @@ ordNubOf w t = evalState (w f t) Set.empty
 hashNubOf :: (Eq a, Hashable a) => FilterLike' (State (HSet.HashSet a)) s a -> s -> s
 hashNubOf w t = evalState (w f t) HSet.empty
   where
-    f a = state $ \s ->
-      case HSet.member a s of
-        True  -> (Nothing, s)
-        False -> (Just a, HSet.insert a s)
+    f a = state $ \s -> if HSet.member a s
+      then (Nothing, s)
+      else (Just a, HSet.insert a s)
 {-# INLINE hashNubOf #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
@@ -200,31 +199,23 @@ instance Witherable [] where
   wither f = go where
     go (x:xs) = maybe id (:) <$> f x <*> go xs
     go [] = pure []
-  {-# INLINE wither #-}
+  {-# INLINE[0] wither #-}
   mapMaybe = Maybe.mapMaybe
-  {-# INLINE mapMaybe #-}
   catMaybes = Maybe.catMaybes
-  {-# INLINE catMaybes #-}
   filter = Prelude.filter
-  {-# INLINE filter #-}
 
 instance Witherable IM.IntMap where
   mapMaybe = IM.mapMaybe
-  {-# INLINE mapMaybe #-}
   filter = IM.filter
-  {-# INLINE filter #-}
 
 instance Ord k => Witherable (M.Map k) where
   mapMaybe = M.mapMaybe
-  {-# INLINE mapMaybe #-}
   filter = M.filter
-  {-# INLINE filter #-}
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
   wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
   {-# INLINABLE wither #-}
   filter = HM.filter
-  {-# INLINE filter #-}
 
 #if (MIN_VERSION_base(4,7,0))
 instance Witherable Proxy where
@@ -239,13 +230,11 @@ instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
   {-# INLINABLE wither #-}
   filter = V.filter
-  {-# INLINE filter #-}
 
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
   {-# INLINABLE wither #-}
   filter = S.filter
-  {-# INLINE filter #-}
 
 -- | Traversable containers which hold 'Maybe' are witherable.
 newtype Chipped t a = Chipped { getChipped :: t (Maybe a) } deriving (Functor, F.Foldable, T.Traversable)
