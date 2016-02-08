@@ -9,6 +9,7 @@ cabal-dev
 .cabal-sandbox/
 cabal.sandbox.config
 cabal.config
+.stack-work
 
 # =========================
 # Operating System Files
@@ -22,7 +23,8 @@ cabal.config
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*

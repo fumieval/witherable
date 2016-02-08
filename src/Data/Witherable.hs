@@ -28,7 +28,7 @@ module Data.Witherable (Witherable(..)
   , hashNubOf
    -- * Cloning
   , cloneFilter
-  , Dungeon(..)
+  , Peat(..)
   -- * Witherable from Traversable
   , Chipped(..)
   )
@@ -61,20 +61,20 @@ type Filter s t a b = forall f. Applicative f => FilterLike f s t a b
 type FilterLike' f s a = FilterLike f s s a a
 type Filter' s a = forall f. Applicative f => FilterLike' f s a
 
-newtype Dungeon a b t = Dungeon { runDungeon :: forall f. Applicative f => (a -> f (Maybe b)) -> f t }
+newtype Peat a b t = Peat { runPeat :: forall f. Applicative f => (a -> f (Maybe b)) -> f t }
 
-instance Functor (Dungeon a b) where
-  fmap f (Dungeon k) = Dungeon (fmap f . k)
+instance Functor (Peat a b) where
+  fmap f (Peat k) = Peat (fmap f . k)
   {-# INLINE fmap #-}
 
-instance Applicative (Dungeon a b) where
-  pure a = Dungeon $ const (pure a)
+instance Applicative (Peat a b) where
+  pure a = Peat $ const (pure a)
   {-# INLINE pure #-}
-  Dungeon f <*> Dungeon g = Dungeon $ \h -> f h <*> g h
+  Peat f <*> Peat g = Peat $ \h -> f h <*> g h
   {-# INLINE (<*>) #-}
 
-cloneFilter :: FilterLike (Dungeon a b) s t a b -> Filter s t a b
-cloneFilter l f = (`runDungeon` f) . l (\a -> Dungeon $ \g -> g a)
+cloneFilter :: FilterLike (Peat a b) s t a b -> Filter s t a b
+cloneFilter l f = (`runPeat` f) . l (\a -> Peat $ \g -> g a)
 {-# INLINABLE cloneFilter #-}
 
 -- | 'witherOf' is actually 'id', but left for consistency.
