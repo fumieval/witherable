@@ -54,7 +54,7 @@ import Data.Orphans ()
 #if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
 #endif
-import GHC.Base (build)
+import Prelude -- Fix redundant import warning
 
 type FilterLike f s t a b = (a -> f (Maybe b)) -> s -> f t
 type Filter s t a b = forall f. Applicative f => FilterLike f s t a b
