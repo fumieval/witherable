@@ -15,6 +15,8 @@
 --
 -----------------------------------------------------------------------------
 module Data.Witherable (Witherable(..)
+  , forMaybe
+  , forMaybeA
   , witherM
   , blightM
   , ordNub
@@ -143,6 +145,16 @@ class T.Traversable t => Witherable t where
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
   {-# MINIMAL wither | mapMaybe | catMaybes #-}
 #endif
+
+-- | 'forMaybe' is 'mapMaybe' with its arguments flipped.
+forMaybe :: (Witherable t) => t a -> (a -> Maybe b) -> t b
+forMaybe = flip mapMaybe
+{-# INLINE forMaybe #-}
+
+-- | 'forMaybeA' is 'wither' with its arguments flipped.
+forMaybeA :: (Witherable t, Applicative f) => t a -> (a -> f (Maybe b)) -> f (t b)
+forMaybeA = flip wither
+{-# INLINE forMaybeA #-}
 
 witherM :: (Witherable t, Monad m) => (a -> MaybeT m b) -> t a -> m (t b)
 witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
