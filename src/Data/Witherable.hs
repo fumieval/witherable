@@ -111,7 +111,7 @@ filterOf w f = runIdentity . filterAOf w (Identity . f)
 --   @'wither' ('pure' . Just) ≡ 'pure'@
 --
 -- [/composition/]
---   @Compose . fmap ('wither' f) . 'wither' g ≡ 'wither' (Compose . fmap ('wither' f) . g)@
+--   @'Data.Functor.Compose.Compose' . 'fmap' ('wither' f) . 'wither' g ≡ 'wither' ('Data.Functor.Compose.Compose' . 'fmap' ('wither' f) . g)@
 --
 -- Parametricity implies the naturality law:
 --
@@ -172,15 +172,14 @@ hashNubOf w t = evalState (w f t) HSet.empty
 
 -- | Removes duplicate elements from a list, keeping only the first
 --   occurrence. This is exponentially quicker than using
---   'Data.List.nub' from 'Data.List'.
+--   'Data.List.nub' from "Data.List".
 ordNub :: (Witherable t, Ord a) => t a -> t a
 ordNub = ordNubOf wither
 {-# INLINE ordNub #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
 --   occurrence. This is usually faster than 'ordNub', especially for
---   things that have a slow comparion (like 'String')
--- hashNubOf :: (Witherable t, Eq a, Hashable a) => t a -> t a
+--   things that have a slow comparion (like 'String').
 hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
 hashNub = hashNubOf wither
 {-# INLINE hashNub #-}
