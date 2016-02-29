@@ -19,9 +19,11 @@ module Data.Witherable (Witherable(..)
   , blightM
   , ordNub
   , hashNub
+  , forMaybe
   -- * Generalization
   , FilterLike, Filter, FilterLike', Filter'
   , witherOf
+  , forMaybeOf
   , mapMaybeOf
   , catMaybesOf
   , filterAOf
@@ -84,6 +86,11 @@ witherOf :: FilterLike f s t a b -> (a -> f (Maybe b)) -> s -> f t
 witherOf = id
 {-# INLINE witherOf #-}
 
+-- | @'forMaybeOf' == 'flip'@
+forMaybeOf :: FilterLike f s t a b -> s -> (a -> f (Maybe b)) -> f t
+forMaybeOf = flip
+{-# INLINE forMaybeOf #-}
+
 -- | 'mapMaybe' through a filter.
 mapMaybeOf :: FilterLike Identity s t a b -> (a -> Maybe b) -> s -> t
 mapMaybeOf w f = runIdentity . w (Identity . f)
@@ -143,6 +150,11 @@ class T.Traversable t => Witherable t where
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
   {-# MINIMAL wither | mapMaybe | catMaybes #-}
 #endif
+
+-- | @'forMaybe' == 'flip' 'wither'@
+forMaybe :: (Witherable t, Applicative f) => t a -> (a -> f (Maybe b)) -> f (t b)
+forMaybe = flip wither
+{-# INLINE forMaybe #-}
 
 witherM :: (Witherable t, Monad m) => (a -> MaybeT m b) -> t a -> m (t b)
 witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
