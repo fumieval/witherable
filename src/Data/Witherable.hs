@@ -49,6 +49,7 @@ import qualified Data.HashSet as HSet
 import Control.Applicative
 import qualified Data.Traversable as T
 import qualified Data.Foldable as F
+import Data.Functor.Compose
 import Data.Hashable
 import Data.Functor.Identity
 import Control.Monad.Trans.Maybe
@@ -60,11 +61,21 @@ import Data.Proxy
 #endif
 import Prelude -- Fix redundant import warning
 
+-- | This type allows combinators to take a 'Filter' specializing the parameter @f@.
 type FilterLike f s t a b = (a -> f (Maybe b)) -> s -> f t
+
+-- | A 'Filter' is like a <http://hackage.haskell.org/package/lens-4.13.2.1/docs/Control-Lens-Type.html#t:Traversal Traversal>,
+-- but you can also remove targets.
 type Filter s t a b = forall f. Applicative f => FilterLike f s t a b
+
+-- | A simple 'FilterLike'.
 type FilterLike' f s a = FilterLike f s s a a
+
+-- | A simple 'Filter'.
 type Filter' s a = forall f. Applicative f => FilterLike' f s a
 
+-- | This is used to characterize and clone a 'Filter'.
+-- Since @FilterLike (Peat a b) s t a b@ is monomorphic, it can be used to store a filter in a container.
 newtype Peat a b t = Peat { runPeat :: forall f. Applicative f => (a -> f (Maybe b)) -> f t }
 
 instance Functor (Peat a b) where
@@ -77,6 +88,7 @@ instance Applicative (Peat a b) where
   Peat f <*> Peat g = Peat $ \h -> f h <*> g h
   {-# INLINE (<*>) #-}
 
+-- | Reconstitute a 'Filter' from its monomorphic form.
 cloneFilter :: FilterLike (Peat a b) s t a b -> Filter s t a b
 cloneFilter l f = (`runPeat` f) . l (\a -> Peat $ \g -> g a)
 {-# INLINABLE cloneFilter #-}
@@ -101,6 +113,7 @@ catMaybesOf :: FilterLike Identity s t (Maybe a) a -> s -> t
 catMaybesOf w = mapMaybeOf w id
 {-# INLINE catMaybesOf #-}
 
+-- | 'filterA' through a filter.
 filterAOf :: Functor f => FilterLike' f s a -> (a -> f Bool) -> s -> f s
 filterAOf w f = w $ \a -> (\b -> if b then Just a else Nothing) <$> f a
 {-# INLINABLE filterAOf #-}
@@ -110,9 +123,7 @@ filterOf :: FilterLike' Identity s a -> (a -> Bool) -> s -> s
 filterOf w f = runIdentity . filterAOf w (Identity . f)
 {-# INLINE filterOf #-}
 
--- | Like `traverse`, but you can remove elements instead of updating them.
---
--- @'traverse' f ≡ 'wither' ('fmap' 'Just' . f)@
+-- | Like 'Traversable', but you can remove elements instead of updating them.
 --
 -- A definition of 'wither' must satisfy the following laws:
 --
@@ -120,30 +131,35 @@ filterOf w f = runIdentity . filterAOf w (Identity . f)
 --   @'wither' ('pure' . Just) ≡ 'pure'@
 --
 -- [/composition/]
---   @'Data.Functor.Compose.Compose' . 'fmap' ('wither' f) . 'wither' g ≡ 'wither' ('Data.Functor.Compose.Compose' . 'fmap' ('wither' f) . g)@
+--   @'Compose' . 'fmap' ('wither' f) . 'wither' g ≡ 'wither' ('Compose' . 'fmap' ('wither' f) . g)@
 --
 -- Parametricity implies the naturality law:
 --
---   @t . 'wither' f = 'wither' (t . f)@
+--   @t . 'wither' f ≡ 'wither' (t . f)@
 --
 
 class T.Traversable t => Witherable t where
 
+  -- | @'traverse' f ≡ 'wither' ('fmap' 'Just' . f)@
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
   wither f = fmap catMaybes . T.traverse f
   {-# INLINE wither #-}
 
+  -- | @'mapMaybe' f . 'mapMaybe' g ≡ 'mapMaybe' (f <=< g)@
   mapMaybe :: (a -> Maybe b) -> t a -> t b
   mapMaybe = mapMaybeOf wither
   {-# INLINE mapMaybe #-}
 
+  -- | @'catMaybes' ≡ 'mapMaybe' 'id'@
   catMaybes :: t (Maybe a) -> t a
   catMaybes = mapMaybe id
   {-# INLINE catMaybes #-}
 
+  -- | @'Compose' . 'fmap' ('filterA' f) . 'filterA' g ≡ 'filterA' (\x -> 'Compose' $ 'fmap' (\b -> (b&&) <$> f x) (g x)@
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA = filterAOf wither
 
+  -- | @'filter' f . 'filter' g ≡ filter ('liftA2' ('&&') f g)@
   filter :: (a -> Bool) -> t a -> t a
   filter = filterOf wither
   {-# INLINE filter #-}
@@ -151,11 +167,12 @@ class T.Traversable t => Witherable t where
   {-# MINIMAL wither | mapMaybe | catMaybes #-}
 #endif
 
--- | @'forMaybe' == 'flip' 'wither'@
+-- | @'forMaybe' = 'flip' 'wither'@
 forMaybe :: (Witherable t, Applicative f) => t a -> (a -> f (Maybe b)) -> f (t b)
 forMaybe = flip wither
 {-# INLINE forMaybe #-}
 
+-- | A variant of `wither` that works on 'MaybeT'.
 witherM :: (Witherable t, Monad m) => (a -> MaybeT m b) -> t a -> m (t b)
 witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
 {-# INLINE witherM #-}
@@ -249,8 +266,13 @@ instance Witherable S.Seq where
   {-# INLINABLE wither #-}
   filter = S.filter
 
+instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
+  wither f = fmap Compose . T.traverse (wither f) . getCompose
+
 -- | Traversable containers which hold 'Maybe' are witherable.
 newtype Chipped t a = Chipped { getChipped :: t (Maybe a) } deriving (Functor, F.Foldable, T.Traversable)
+
+{-# DEPRECATED Chipped "Use 'Compose t Maybe' instead " #-}
 
 deriving instance Show (t (Maybe a)) => Show (Chipped t a)
 deriving instance Read (t (Maybe a)) => Read (Chipped t a)
