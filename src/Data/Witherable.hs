@@ -238,7 +238,7 @@ instance Witherable IM.IntMap where
   mapMaybe = IM.mapMaybe
   filter = IM.filter
 
-instance Ord k => Witherable (M.Map k) where
+instance Witherable (M.Map k) where
   mapMaybe = M.mapMaybe
   filter = M.filter
 
