@@ -202,7 +202,7 @@ hashNubOf w t = evalState (w f t) HSet.empty
 {-# INLINE hashNubOf #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
---   occurrence. This is exponentially quicker than using
+--   occurrence. This is asymptotically faster than using
 --   'Data.List.nub' from "Data.List".
 ordNub :: (Witherable t, Ord a) => t a -> t a
 ordNub = ordNubOf wither
