@@ -243,8 +243,7 @@ instance Witherable (M.Map k) where
   filter = M.filter
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
-  wither f = fmap HM.fromList . wither (\(i, a) -> fmap ((,) i) <$> f a) . HM.toList
-  {-# INLINABLE wither #-}
+  mapMaybe = HM.mapMaybe
   filter = HM.filter
 
 #if (MIN_VERSION_base(4,7,0))
