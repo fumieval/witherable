@@ -1,3 +1,5 @@
+* Added `Traversable t => Witherable (MaybeT t)`
+
 0.1.3.3
 -------
 * Added `forMaybeOf` and `forMaybe`

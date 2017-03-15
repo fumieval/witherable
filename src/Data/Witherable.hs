@@ -274,6 +274,9 @@ newtype Chipped t a = Chipped { getChipped :: t (Maybe a) } deriving (Functor, F
 
 {-# DEPRECATED Chipped "Use 'Compose t Maybe' instead " #-}
 
+instance (T.Traversable t) => Witherable (MaybeT t) where
+  wither f = fmap MaybeT . T.traverse (wither f) . runMaybeT
+
 deriving instance Show (t (Maybe a)) => Show (Chipped t a)
 deriving instance Read (t (Maybe a)) => Read (Chipped t a)
 deriving instance Eq (t (Maybe a)) => Eq (Chipped t a)
