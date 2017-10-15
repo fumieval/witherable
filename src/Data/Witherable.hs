@@ -160,7 +160,7 @@ class (T.Traversable t, Filterable t) => Witherable t where
   filterA = filterAOf wither
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
-  {-# MINIMAL wither | mapMaybe | catMaybes #-}
+  {-# MINIMAL #-}
 #endif
 
 -- | @'forMaybe' = 'flip' 'wither'@
@@ -226,21 +226,12 @@ instance Witherable [] where
     go (x:xs) = maybe id (:) <$> f x <*> go xs
     go [] = pure []
   {-# INLINE[0] wither #-}
-  mapMaybe = Maybe.mapMaybe
-  catMaybes = Maybe.catMaybes
-  filter = Prelude.filter
 
 instance Witherable IM.IntMap where
-  mapMaybe = IM.mapMaybe
-  filter = IM.filter
 
 instance Witherable (M.Map k) where
-  mapMaybe = M.mapMaybe
-  filter = M.filter
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
-  mapMaybe = HM.mapMaybe
-  filter = HM.filter
 
 #if (MIN_VERSION_base(4,7,0))
 instance Witherable Proxy where
@@ -254,12 +245,10 @@ instance Witherable (Const r) where
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
   {-# INLINABLE wither #-}
-  filter = V.filter
 
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
   {-# INLINABLE wither #-}
-  filter = S.filter
 
 instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
   wither f = fmap Compose . T.traverse (wither f) . getCompose
