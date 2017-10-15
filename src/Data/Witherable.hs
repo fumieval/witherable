@@ -123,6 +123,16 @@ filterOf :: FilterLike' Identity s a -> (a -> Bool) -> s -> s
 filterOf w f = runIdentity . filterAOf w (Identity . f)
 {-# INLINE filterOf #-}
 
+class Functor f => Filterable f where
+  mapMaybe :: (a -> Maybe b) -> f a -> f b
+
+  catMaybes :: f (Maybe a) -> f a
+  catMaybes = mapMaybe id
+
+  filter :: (a -> Bool) -> f a -> f a
+  filter f = mapMaybe $ \a -> if f a then Just a else Nothing
+
+
 -- | Like 'Traversable', but you can remove elements instead of updating them.
 --
 -- A definition of 'wither' must satisfy the following laws:
@@ -138,31 +148,17 @@ filterOf w f = runIdentity . filterAOf w (Identity . f)
 --   @t . 'wither' f ≡ 'wither' (t . f)@
 --
 
-class T.Traversable t => Witherable t where
+class (T.Traversable t, Filterable t) => Witherable t where
 
   -- | @'traverse' f ≡ 'wither' ('fmap' 'Just' . f)@
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
   wither f = fmap catMaybes . T.traverse f
   {-# INLINE wither #-}
 
-  -- | @'mapMaybe' f . 'mapMaybe' g ≡ 'mapMaybe' (f <=< g)@
-  mapMaybe :: (a -> Maybe b) -> t a -> t b
-  mapMaybe = mapMaybeOf wither
-  {-# INLINE mapMaybe #-}
-
-  -- | @'catMaybes' ≡ 'mapMaybe' 'id'@
-  catMaybes :: t (Maybe a) -> t a
-  catMaybes = mapMaybe id
-  {-# INLINE catMaybes #-}
-
   -- | @'Compose' . 'fmap' ('filterA' f) . 'filterA' g ≡ 'filterA' (\x -> 'Compose' $ 'fmap' (\b -> (b&&) <$> f x) (g x)@
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA = filterAOf wither
 
-  -- | @'filter' f . 'filter' g ≡ filter ('liftA2' ('&&') f g)@
-  filter :: (a -> Bool) -> t a -> t a
-  filter = filterOf wither
-  {-# INLINE filter #-}
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
   {-# MINIMAL wither | mapMaybe | catMaybes #-}
 #endif
