@@ -14,7 +14,9 @@
 -- Portability :  non-portable
 --
 -----------------------------------------------------------------------------
-module Data.Witherable (Witherable(..)
+module Data.Witherable
+  ( Filterable(..)
+  , Witherable(..)
   , witherM
   , blightM
   , ordNub
@@ -98,7 +100,7 @@ witherOf :: FilterLike f s t a b -> (a -> f (Maybe b)) -> s -> f t
 witherOf = id
 {-# INLINE witherOf #-}
 
--- | @'forMaybeOf' == 'flip'@
+-- | @'forMaybeOf' ≡ 'flip'@
 forMaybeOf :: FilterLike f s t a b -> s -> (a -> f (Maybe b)) -> f t
 forMaybeOf = flip
 {-# INLINE forMaybeOf #-}
@@ -123,15 +125,36 @@ filterOf :: FilterLike' Identity s a -> (a -> Bool) -> s -> s
 filterOf w f = runIdentity . filterAOf w (Identity . f)
 {-# INLINE filterOf #-}
 
+-- | Like 'Functor', but it include 'Maybe' effects.
+--
+-- Formally, the class 'Filterable' represents a functor from @Kleisli Maybe@ to @f@.
+--
+-- A definition of 'mapMaybe' must satisfy the following laws:
+--
+-- [/identity/]
+--   @'mapMaybe' Just ≡ id@
+--
+-- [/composition/]
+--   @'mapMaybe' f . 'mapMaybe' g ≡ 'mapMaybe' (f <=< g)@
 class Functor f => Filterable f where
+  -- | Like 'Maybe.mapMaybe'.
   mapMaybe :: (a -> Maybe b) -> f a -> f b
+  mapMaybe f = catMaybes . fmap f
+  {-# INLINE mapMaybe #-}
 
+  -- | @'catMaybes' ≡ 'mapMaybe' 'id'@
   catMaybes :: f (Maybe a) -> f a
   catMaybes = mapMaybe id
+  {-# INLINE catMaybes #-}
 
+  -- | @'filter' f . 'filter' g ≡ filter ('liftA2' ('&&') f g)@
   filter :: (a -> Bool) -> f a -> f a
   filter f = mapMaybe $ \a -> if f a then Just a else Nothing
+  {-# INLINE filter #-}
 
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
+  {-# MINIMAL mapMaybe | catMaybes #-}
+#endif
 
 -- | Like 'Traversable', but you can remove elements instead of updating them.
 --
