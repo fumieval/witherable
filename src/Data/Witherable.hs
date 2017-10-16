@@ -127,7 +127,7 @@ filterOf w f = runIdentity . filterAOf w (Identity . f)
 
 -- | Like 'Functor', but it include 'Maybe' effects.
 --
--- Formally, the class 'Filterable' represents a functor from @Kleisli Maybe@ to @f@.
+-- Formally, the class 'Filterable' represents a functor from @Kleisli Maybe@ to @Hask@.
 --
 -- A definition of 'mapMaybe' must satisfy the following laws:
 --
