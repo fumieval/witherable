@@ -100,7 +100,7 @@ witherOf :: FilterLike f s t a b -> (a -> f (Maybe b)) -> s -> f t
 witherOf = id
 {-# INLINE witherOf #-}
 
--- | @'forMaybeOf' ≡ 'flip'@
+-- | @'forMaybeOf' == 'flip'@
 forMaybeOf :: FilterLike f s t a b -> s -> (a -> f (Maybe b)) -> f t
 forMaybeOf = flip
 {-# INLINE forMaybeOf #-}
@@ -236,6 +236,7 @@ hashNub = hashNubOf wither
 
 instance Filterable Maybe where
   mapMaybe f = (>>= f)
+  {-# INLINE mapMaybe #-}
 
 instance Witherable Maybe where
   wither _ Nothing = pure Nothing
@@ -245,6 +246,7 @@ instance Witherable Maybe where
 instance Monoid e => Filterable (Either e) where
   mapMaybe _ (Left e) = Left e
   mapMaybe f (Right a) = maybe (Left mempty) Right $ f a
+  {-# INLINABLE mapMaybe #-}
 
 instance Monoid e => Witherable (Either e) where
   wither _ (Left e) = pure (Left e)
@@ -290,6 +292,7 @@ instance Witherable Proxy where
 
 instance Filterable (Const r) where
   mapMaybe _ (Const r) = Const r
+  {-# INLINABLE mapMaybe #-}
 
 instance Witherable (Const r) where
   wither _ (Const r) = pure (Const r)
@@ -297,6 +300,7 @@ instance Witherable (Const r) where
 
 instance Filterable V.Vector where
   mapMaybe f = V.fromList . mapMaybe f . V.toList
+  {-# INLINABLE mapMaybe #-}
 
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
@@ -304,6 +308,7 @@ instance Witherable V.Vector where
 
 instance Filterable S.Seq where
   mapMaybe f = S.fromList . mapMaybe f . F.toList
+  {-# INLINABLE mapMaybe #-}
 
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
