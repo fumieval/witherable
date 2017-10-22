@@ -14,7 +14,9 @@
 -- Portability :  non-portable
 --
 -----------------------------------------------------------------------------
-module Data.Witherable (Witherable(..)
+module Data.Witherable
+  ( Filterable(..)
+  , Witherable(..)
   , witherM
   , blightM
   , ordNub
@@ -98,7 +100,7 @@ witherOf :: FilterLike f s t a b -> (a -> f (Maybe b)) -> s -> f t
 witherOf = id
 {-# INLINE witherOf #-}
 
--- | @'forMaybeOf' == 'flip'@
+-- | @'forMaybeOf' ≡ 'flip'@
 forMaybeOf :: FilterLike f s t a b -> s -> (a -> f (Maybe b)) -> f t
 forMaybeOf = flip
 {-# INLINE forMaybeOf #-}
@@ -123,6 +125,37 @@ filterOf :: FilterLike' Identity s a -> (a -> Bool) -> s -> s
 filterOf w f = runIdentity . filterAOf w (Identity . f)
 {-# INLINE filterOf #-}
 
+-- | Like 'Functor', but it include 'Maybe' effects.
+--
+-- Formally, the class 'Filterable' represents a functor from @Kleisli Maybe@ to @Hask@.
+--
+-- A definition of 'mapMaybe' must satisfy the following laws:
+--
+-- [/identity/]
+--   @'mapMaybe' Just ≡ id@
+--
+-- [/composition/]
+--   @'mapMaybe' f . 'mapMaybe' g ≡ 'mapMaybe' (f <=< g)@
+class Functor f => Filterable f where
+  -- | Like 'Maybe.mapMaybe'.
+  mapMaybe :: (a -> Maybe b) -> f a -> f b
+  mapMaybe f = catMaybes . fmap f
+  {-# INLINE mapMaybe #-}
+
+  -- | @'catMaybes' ≡ 'mapMaybe' 'id'@
+  catMaybes :: f (Maybe a) -> f a
+  catMaybes = mapMaybe id
+  {-# INLINE catMaybes #-}
+
+  -- | @'filter' f . 'filter' g ≡ filter ('liftA2' ('&&') f g)@
+  filter :: (a -> Bool) -> f a -> f a
+  filter f = mapMaybe $ \a -> if f a then Just a else Nothing
+  {-# INLINE filter #-}
+
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
+  {-# MINIMAL mapMaybe | catMaybes #-}
+#endif
+
 -- | Like 'Traversable', but you can remove elements instead of updating them.
 --
 -- A definition of 'wither' must satisfy the following laws:
@@ -138,33 +171,19 @@ filterOf w f = runIdentity . filterAOf w (Identity . f)
 --   @t . 'wither' f ≡ 'wither' (t . f)@
 --
 
-class T.Traversable t => Witherable t where
+class (T.Traversable t, Filterable t) => Witherable t where
 
   -- | @'traverse' f ≡ 'wither' ('fmap' 'Just' . f)@
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
   wither f = fmap catMaybes . T.traverse f
   {-# INLINE wither #-}
 
-  -- | @'mapMaybe' f . 'mapMaybe' g ≡ 'mapMaybe' (f <=< g)@
-  mapMaybe :: (a -> Maybe b) -> t a -> t b
-  mapMaybe = mapMaybeOf wither
-  {-# INLINE mapMaybe #-}
-
-  -- | @'catMaybes' ≡ 'mapMaybe' 'id'@
-  catMaybes :: t (Maybe a) -> t a
-  catMaybes = mapMaybe id
-  {-# INLINE catMaybes #-}
-
   -- | @'Compose' . 'fmap' ('filterA' f) . 'filterA' g ≡ 'filterA' (\x -> 'Compose' $ 'fmap' (\b -> (b&&) <$> f x) (g x)@
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA = filterAOf wither
 
-  -- | @'filter' f . 'filter' g ≡ filter ('liftA2' ('&&') f g)@
-  filter :: (a -> Bool) -> t a -> t a
-  filter = filterOf wither
-  {-# INLINE filter #-}
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
-  {-# MINIMAL wither | mapMaybe | catMaybes #-}
+  {-# MINIMAL #-}
 #endif
 
 -- | @'forMaybe' = 'flip' 'wither'@
@@ -215,55 +234,88 @@ hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
 hashNub = hashNubOf wither
 {-# INLINE hashNub #-}
 
+instance Filterable Maybe where
+  mapMaybe f = (>>= f)
+  {-# INLINE mapMaybe #-}
+
 instance Witherable Maybe where
   wither _ Nothing = pure Nothing
   wither f (Just a) = f a
   {-# INLINABLE wither #-}
+
+instance Monoid e => Filterable (Either e) where
+  mapMaybe _ (Left e) = Left e
+  mapMaybe f (Right a) = maybe (Left mempty) Right $ f a
+  {-# INLINABLE mapMaybe #-}
 
 instance Monoid e => Witherable (Either e) where
   wither _ (Left e) = pure (Left e)
   wither f (Right a) = fmap (maybe (Left mempty) Right) (f a)
   {-# INLINABLE wither #-}
 
+instance Filterable [] where
+  mapMaybe = Maybe.mapMaybe
+  catMaybes = Maybe.catMaybes
+  filter = Prelude.filter
+
 instance Witherable [] where
   wither f = go where
     go (x:xs) = maybe id (:) <$> f x <*> go xs
     go [] = pure []
   {-# INLINE[0] wither #-}
-  mapMaybe = Maybe.mapMaybe
-  catMaybes = Maybe.catMaybes
-  filter = Prelude.filter
 
-instance Witherable IM.IntMap where
+instance Filterable IM.IntMap where
   mapMaybe = IM.mapMaybe
   filter = IM.filter
 
-instance Witherable (M.Map k) where
+instance Witherable IM.IntMap where
+
+instance Filterable (M.Map k) where
   mapMaybe = M.mapMaybe
   filter = M.filter
 
-instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
+instance Witherable (M.Map k) where
+
+instance (Eq k, Hashable k) => Filterable (HM.HashMap k) where
   mapMaybe = HM.mapMaybe
   filter = HM.filter
 
+instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
+
 #if (MIN_VERSION_base(4,7,0))
+instance Filterable Proxy where
+ mapMaybe _ Proxy = Proxy
+
 instance Witherable Proxy where
   wither _ Proxy = pure Proxy
 #endif
+
+instance Filterable (Const r) where
+  mapMaybe _ (Const r) = Const r
+  {-# INLINABLE mapMaybe #-}
 
 instance Witherable (Const r) where
   wither _ (Const r) = pure (Const r)
   {-# INLINABLE wither #-}
 
+instance Filterable V.Vector where
+  mapMaybe f = V.fromList . mapMaybe f . V.toList
+  {-# INLINABLE mapMaybe #-}
+
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
   {-# INLINABLE wither #-}
-  filter = V.filter
+
+instance Filterable S.Seq where
+  mapMaybe f = S.fromList . mapMaybe f . F.toList
+  {-# INLINABLE mapMaybe #-}
 
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
   {-# INLINABLE wither #-}
-  filter = S.filter
+
+instance (Functor f, Filterable g) => Filterable (Compose f g) where
+  mapMaybe f = Compose . fmap (mapMaybe f) . getCompose
 
 instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
   wither f = fmap Compose . T.traverse (wither f) . getCompose
@@ -272,6 +324,9 @@ instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
 newtype Chipped t a = Chipped { getChipped :: t (Maybe a) } deriving (Functor, F.Foldable, T.Traversable)
 
 {-# DEPRECATED Chipped "Use 'Compose t Maybe' instead " #-}
+
+instance Functor f => Filterable (MaybeT f) where
+  mapMaybe f = MaybeT . fmap (mapMaybe f) . runMaybeT
 
 instance (T.Traversable t) => Witherable (MaybeT t) where
   wither f = fmap MaybeT . T.traverse (wither f) . runMaybeT
@@ -284,6 +339,9 @@ deriving instance Ord (t (Maybe a)) => Ord (Chipped t a)
 instance Applicative t => Applicative (Chipped t) where
   pure a = Chipped (pure (pure a))
   Chipped f <*> Chipped t = Chipped (liftA2 (<*>) f t)
+
+instance Functor f => Filterable (Chipped f) where
+  mapMaybe f = Chipped . fmap (mapMaybe f) . getChipped
 
 instance T.Traversable t => Witherable (Chipped t) where
   wither f = fmap Chipped . T.traverse (wither f) . getChipped
