@@ -100,7 +100,7 @@ witherOf :: FilterLike f s t a b -> (a -> f (Maybe b)) -> s -> f t
 witherOf = id
 {-# INLINE witherOf #-}
 
--- | @'forMaybeOf' == 'flip'@
+-- | @'forMaybeOf' ≡ 'flip'@
 forMaybeOf :: FilterLike f s t a b -> s -> (a -> f (Maybe b)) -> f t
 forMaybeOf = flip
 {-# INLINE forMaybeOf #-}
