@@ -35,8 +35,6 @@ module Data.Witherable
    -- * Cloning
   , cloneFilter
   , Peat(..)
-  -- * Witherable from Traversable
-  , Chipped(..)
   )
 
 where
@@ -320,28 +318,8 @@ instance (Functor f, Filterable g) => Filterable (Compose f g) where
 instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
   wither f = fmap Compose . T.traverse (wither f) . getCompose
 
--- | Traversable containers which hold 'Maybe' are witherable.
-newtype Chipped t a = Chipped { getChipped :: t (Maybe a) } deriving (Functor, F.Foldable, T.Traversable)
-
-{-# DEPRECATED Chipped "Use 'Compose t Maybe' instead " #-}
-
 instance Functor f => Filterable (MaybeT f) where
   mapMaybe f = MaybeT . fmap (mapMaybe f) . runMaybeT
 
 instance (T.Traversable t) => Witherable (MaybeT t) where
   wither f = fmap MaybeT . T.traverse (wither f) . runMaybeT
-
-deriving instance Show (t (Maybe a)) => Show (Chipped t a)
-deriving instance Read (t (Maybe a)) => Read (Chipped t a)
-deriving instance Eq (t (Maybe a)) => Eq (Chipped t a)
-deriving instance Ord (t (Maybe a)) => Ord (Chipped t a)
-
-instance Applicative t => Applicative (Chipped t) where
-  pure a = Chipped (pure (pure a))
-  Chipped f <*> Chipped t = Chipped (liftA2 (<*>) f t)
-
-instance Functor f => Filterable (Chipped f) where
-  mapMaybe f = Chipped . fmap (mapMaybe f) . getChipped
-
-instance T.Traversable t => Witherable (Chipped t) where
-  wither f = fmap Chipped . T.traverse (wither f) . getChipped
