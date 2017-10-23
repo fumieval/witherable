@@ -1,4 +1,9 @@
+0.2
+-------
 * Added `Traversable t => Witherable (MaybeT t)`
+* New class: `Filterable`
+  * `Witherable t` is equivalent to `(Traversable t, Filterable t)`
+* Removed `Chipped`
 
 0.1.3.3
 -------
