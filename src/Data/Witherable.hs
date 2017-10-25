@@ -161,6 +161,9 @@ class Functor f => Filterable f where
 -- [/identity/]
 --   @'wither' ('pure' . Just) ≡ 'pure'@
 --
+-- [/conservation/]
+--   @'wither' (f . Just) ≡ 'traverse' f@
+--
 -- [/composition/]
 --   @'Compose' . 'fmap' ('wither' f) . 'wither' g ≡ 'wither' ('Compose' . 'fmap' ('wither' f) . g)@
 --
