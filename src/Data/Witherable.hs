@@ -132,6 +132,9 @@ filterOf w f = runIdentity . filterAOf w (Identity . f)
 -- [/identity/]
 --   @'mapMaybe' Just ≡ id@
 --
+-- [/conservation/]
+--   @'mapMaybe' (Just . f) ≡ 'fmap' f@
+--
 -- [/composition/]
 --   @'mapMaybe' f . 'mapMaybe' g ≡ 'mapMaybe' (f <=< g)@
 class Functor f => Filterable f where
@@ -162,7 +165,7 @@ class Functor f => Filterable f where
 --   @'wither' ('pure' . Just) ≡ 'pure'@
 --
 -- [/conservation/]
---   @'wither' (f . Just) ≡ 'traverse' f@
+--   @'wither' ('fmap' 'Just' . f) ≡ 'traverse' f@
 --
 -- [/composition/]
 --   @'Compose' . 'fmap' ('wither' f) . 'wither' g ≡ 'wither' ('Compose' . 'fmap' ('wither' f) . g)@
