@@ -24,7 +24,7 @@ library
   -- other-extensions:
   build-depends:       base == 4.*,
                        base-orphans,
-                       containers,
+                       containers >= 0.5,
                        hashable,
                        transformers,
                        unordered-containers,
