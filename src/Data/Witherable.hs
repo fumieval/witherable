@@ -233,7 +233,7 @@ ordNub = ordNubOf wither
 
 -- | Removes duplicate elements from a list, keeping only the first
 --   occurrence. This is usually faster than 'ordNub', especially for
---   things that have a slow comparion (like 'String').
+--   things that have a slow comparison (like 'String').
 hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
 hashNub = hashNubOf wither
 {-# INLINE hashNub #-}
