@@ -200,6 +200,17 @@ class (T.Traversable t, Filterable t) => Witherable t where
   wither f = fmap catMaybes . T.traverse f
   {-# INLINE wither #-}
 
+  -- | @Monadic variant of 'wither'. This may have more efficient implementation.@
+  witherM :: Monad m => (a -> m (Maybe b)) -> t a -> m (t b)
+#if MIN_VERSION_base(4,8,0)
+  witherM = wither
+#elif __GLASGOW_HASKELL__ >= 708
+  witherM f = unwrapMonad . wither (coerce f)
+#else
+  witherM f = unwrapMonad . wither (WrapMonad . f)
+#endif
+  {-# INLINE witherM #-}
+
   -- | @'Compose' . 'fmap' ('filterA' f) . 'filterA' g ≡ 'filterA' (\x -> 'Compose' $ 'fmap' (\b -> (b&&) <$> f x) (g x)@
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA = filterAOf wither
@@ -236,14 +247,14 @@ hashNubOf w t = evalState (w f t) HSet.empty
 --   occurrence. This is asymptotically faster than using
 --   'Data.List.nub' from "Data.List".
 ordNub :: (Witherable t, Ord a) => t a -> t a
-ordNub = ordNubOf wither
+ordNub = ordNubOf witherM
 {-# INLINE ordNub #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
 --   occurrence. This is usually faster than 'ordNub', especially for
 --   things that have a slow comparison (like 'String').
 hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
-hashNub = hashNubOf wither
+hashNub = hashNubOf witherM
 {-# INLINE hashNub #-}
 
 instance Filterable Maybe where
