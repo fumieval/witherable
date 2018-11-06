@@ -43,7 +43,7 @@ import qualified Data.IntMap.Lazy as IM
 import qualified Data.Map.Lazy as M
 import qualified Data.Sequence as S
 import qualified Data.Vector as V
-import qualified Data.HashMap.Strict as HM
+import qualified Data.HashMap.Lazy as HM
 import qualified Data.Set as Set
 import qualified Data.HashSet as HSet
 import Control.Applicative

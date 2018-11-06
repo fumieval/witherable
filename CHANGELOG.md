@@ -1,3 +1,14 @@
+0.3
+-------
+* Added `(Filterable f, Filterable g) => Filterable (Product f g)`
+* Added `(Witherable f, Witherable g) => Witherable (Product f g)`
+* Added `(Filterable f, Filterable g) => Filterable (Sum f g)`
+* Added `(Witherable f, Witherable g) => Witherable (Sum f g)`
+* Added `Filterable f => Filterable (IdentityT f)`
+* Added `Witherable f => Witherable (IdentityT f)`
+* Switched from strict `HashMap` operations to lazy ones. This
+  matches the behavior of the rest of the instances.
+
 0.2
 -------
 * Added `Traversable t => Witherable (MaybeT t)`
