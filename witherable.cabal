@@ -27,6 +27,7 @@ library
                        containers >= 0.5,
                        hashable,
                        transformers,
+                       transformers-compat,
                        unordered-containers,
                        vector
   hs-source-dirs:      src
