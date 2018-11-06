@@ -50,6 +50,9 @@ import Control.Applicative
 import qualified Data.Traversable as T
 import qualified Data.Foldable as F
 import Data.Functor.Compose
+import Data.Functor.Product as P
+import Data.Functor.Sum as Sum
+import Control.Monad.Trans.Identity
 import Data.Hashable
 import Data.Functor.Identity
 import Control.Monad.Trans.Maybe
@@ -337,11 +340,35 @@ instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
   {-# INLINABLE wither #-}
 
+-- The instances for Compose, Product, and Sum are not entirely
+-- unique. Any particular composition, product, or sum of functors
+-- may support a variety of 'wither' implementations.
+
 instance (Functor f, Filterable g) => Filterable (Compose f g) where
   mapMaybe f = Compose . fmap (mapMaybe f) . getCompose
 
 instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
   wither f = fmap Compose . T.traverse (wither f) . getCompose
+
+instance (Filterable f, Filterable g) => Filterable (P.Product f g) where
+  mapMaybe f (P.Pair x y) = P.Pair (mapMaybe f x) (mapMaybe f y)
+
+instance (Witherable f, Witherable g) => Witherable (P.Product f g) where
+  wither f (P.Pair x y) = liftA2 P.Pair (wither f x) (wither f y)
+
+instance (Filterable f, Filterable g) => Filterable (Sum.Sum f g) where
+  mapMaybe f (Sum.InL x) = Sum.InL (mapMaybe f x)
+  mapMaybe f (Sum.InR y) = Sum.InR (mapMaybe f y)
+
+instance (Witherable f, Witherable g) => Witherable (Sum.Sum f g) where
+  wither f (Sum.InL x) = Sum.InL <$> wither f x
+  wither f (Sum.InR y) = Sum.InR <$> wither f y
+
+instance Filterable f => Filterable (IdentityT f) where
+  mapMaybe f (IdentityT m) = IdentityT (mapMaybe f m)
+
+instance Witherable f => Witherable (IdentityT f) where
+  wither f (IdentityT m) = IdentityT <$> wither f m
 
 instance Functor f => Filterable (MaybeT f) where
   mapMaybe f = MaybeT . fmap (mapMaybe f) . runMaybeT
