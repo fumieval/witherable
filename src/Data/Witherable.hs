@@ -17,8 +17,6 @@
 module Data.Witherable
   ( Filterable(..)
   , Witherable(..)
-  , witherM
-  , blightM
   , ordNub
   , hashNub
   , forMaybe
@@ -214,16 +212,6 @@ class (T.Traversable t, Filterable t) => Witherable t where
 forMaybe :: (Witherable t, Applicative f) => t a -> (a -> f (Maybe b)) -> f (t b)
 forMaybe = flip wither
 {-# INLINE forMaybe #-}
-
--- | A variant of `wither` that works on 'MaybeT'.
-witherM :: (Witherable t, Monad m) => (a -> MaybeT m b) -> t a -> m (t b)
-witherM f = unwrapMonad . wither (WrapMonad . runMaybeT . f)
-{-# INLINE witherM #-}
-
--- | 'blightM' is 'witherM' with its arguments flipped.
-blightM :: (Monad m, Witherable t) => t a -> (a -> MaybeT m b) -> m (t b)
-blightM = flip witherM
-{-# INLINE blightM #-}
 
 -- | Remove the duplicate elements through a filter.
 ordNubOf :: Ord a => FilterLike' (State (Set.Set a)) s a -> s -> s
