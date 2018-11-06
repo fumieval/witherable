@@ -59,6 +59,9 @@ import Data.Orphans ()
 #if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
 #endif
+#if __GLASGOW_HASKELL__ >= 708
+import Data.Coerce (coerce)
+#endif
 import Prelude -- Fix redundant import warning
 
 -- | This type allows combinators to take a 'Filter' specializing the parameter @f@.
@@ -87,6 +90,10 @@ instance Applicative (Peat a b) where
   {-# INLINE pure #-}
   Peat f <*> Peat g = Peat $ \h -> f h <*> g h
   {-# INLINE (<*>) #-}
+#if MIN_VERSION_base(4,10,0)
+  liftA2 f (Peat xs) (Peat ys) = Peat $ \h -> liftA2 f (xs h) (ys h)
+  {-# INLINE liftA2 #-}
+#endif
 
 -- | Reconstitute a 'Filter' from its monomorphic form.
 cloneFilter :: FilterLike (Peat a b) s t a b -> Filter s t a b
@@ -103,9 +110,19 @@ forMaybeOf :: FilterLike f s t a b -> s -> (a -> f (Maybe b)) -> f t
 forMaybeOf = flip
 {-# INLINE forMaybeOf #-}
 
+-- In case mapMaybeOf or filterOf is called with a function of
+-- unknown arity, we don't want to slow things down to raise
+-- its arity.
+idDot :: (a -> b) -> a -> Identity b
+#if __GLASGOW_HASKELL__ >= 708
+idDot = coerce
+#else
+idDot = (Identity .)
+#endif
+
 -- | 'mapMaybe' through a filter.
 mapMaybeOf :: FilterLike Identity s t a b -> (a -> Maybe b) -> s -> t
-mapMaybeOf w f = runIdentity . w (Identity . f)
+mapMaybeOf w f = runIdentity . w (idDot f)
 {-# INLINE mapMaybeOf #-}
 
 -- | 'catMaybes' through a filter.
@@ -120,7 +137,7 @@ filterAOf w f = w $ \a -> (\b -> if b then Just a else Nothing) <$> f a
 
 -- | Filter each element of a structure targeted by a 'Filter'.
 filterOf :: FilterLike' Identity s a -> (a -> Bool) -> s -> s
-filterOf w f = runIdentity . filterAOf w (Identity . f)
+filterOf w f = runIdentity . filterAOf w (idDot f)
 {-# INLINE filterOf #-}
 
 -- | Like 'Functor', but it include 'Maybe' effects.
@@ -264,7 +281,7 @@ instance Filterable [] where
 
 instance Witherable [] where
   wither f = go where
-    go (x:xs) = maybe id (:) <$> f x <*> go xs
+    go (x:xs) = liftA2 (maybe id (:)) (f x) (go xs)
     go [] = pure []
   {-# INLINE[0] wither #-}
 
@@ -279,6 +296,9 @@ instance Filterable (M.Map k) where
   filter = M.filter
 
 instance Witherable (M.Map k) where
+#if MIN_VERSION_containers(0,5,8)
+  wither f = M.traverseMaybeWithKey (const f)
+#endif
 
 instance (Eq k, Hashable k) => Filterable (HM.HashMap k) where
   mapMaybe = HM.mapMaybe
@@ -303,8 +323,7 @@ instance Witherable (Const r) where
   {-# INLINABLE wither #-}
 
 instance Filterable V.Vector where
-  mapMaybe f = V.fromList . mapMaybe f . V.toList
-  {-# INLINABLE mapMaybe #-}
+  mapMaybe = V.mapMaybe
 
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
