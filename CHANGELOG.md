@@ -8,6 +8,7 @@
 * Added `Witherable f => Witherable (IdentityT f)`
 * Switched from strict `HashMap` operations to lazy ones. This
   matches the behavior of the rest of the instances.
+* Changed the definition of `witherM`
 
 0.2
 -------
