@@ -10,7 +10,7 @@ maintainer:          Fumiaki Kinoshita <fumiexcel@gmail.com>
 copyright:           Copyright (c) 2014 Fumiaki Kinoshita
 category:            Data
 build-type:          Simple
--- extra-source-files:
+extra-source-files:  CHANGELOG.md
 cabal-version:       >=1.10
 tested-With: GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.3
 
