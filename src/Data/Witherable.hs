@@ -60,9 +60,7 @@ import Data.Orphans ()
 #if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
 #endif
-#if __GLASGOW_HASKELL__ >= 708
 import Data.Coerce (coerce)
-#endif
 import Prelude -- Fix redundant import warning
 
 -- | This type allows combinators to take a 'Filter' specializing the parameter @f@.
