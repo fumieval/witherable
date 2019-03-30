@@ -196,6 +196,8 @@ class Functor f => Filterable f where
 class (T.Traversable t, Filterable t) => Witherable t where
 
   -- | @'traverse' f ≡ 'wither' ('fmap' 'Just' . f)@
+  --
+  -- @'wither' ('pure' . f) ≡ 'pure' . 'mapMaybe' f@
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
   wither f = fmap catMaybes . T.traverse f
   {-# INLINE wither #-}
