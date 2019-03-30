@@ -139,7 +139,7 @@ filterOf :: FilterLike' Identity s a -> (a -> Bool) -> s -> s
 filterOf w f = runIdentity . filterAOf w (idDot f)
 {-# INLINE filterOf #-}
 
--- | Like 'Functor', but it include 'Maybe' effects.
+-- | Like 'Functor', but it includes 'Maybe' effects.
 --
 -- Formally, the class 'Filterable' represents a functor from @Kleisli Maybe@ to @Hask@.
 --
