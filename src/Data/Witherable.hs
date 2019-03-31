@@ -139,14 +139,11 @@ filterOf :: FilterLike' Identity s a -> (a -> Bool) -> s -> s
 filterOf w f = runIdentity . filterAOf w (idDot f)
 {-# INLINE filterOf #-}
 
--- | Like 'Functor', but it includes 'Maybe' effects.
+-- | Like 'Functor', but you can remove elements instead of updating them.
 --
 -- Formally, the class 'Filterable' represents a functor from @Kleisli Maybe@ to @Hask@.
 --
 -- A definition of 'mapMaybe' must satisfy the following laws:
---
--- [/identity/]
---   @'mapMaybe' Just ≡ id@
 --
 -- [/conservation/]
 --   @'mapMaybe' (Just . f) ≡ 'fmap' f@
@@ -173,12 +170,9 @@ class Functor f => Filterable f where
   {-# MINIMAL mapMaybe | catMaybes #-}
 #endif
 
--- | Like 'Traversable', but you can remove elements instead of updating them.
+-- | An enhancement of 'Traversable' with 'Filterable'
 --
 -- A definition of 'wither' must satisfy the following laws:
---
--- [/identity/]
---   @'wither' ('pure' . Just) ≡ 'pure'@
 --
 -- [/conservation/]
 --   @'wither' ('fmap' 'Just' . f) ≡ 'traverse' f@
@@ -193,7 +187,7 @@ class Functor f => Filterable f where
 
 class (T.Traversable t, Filterable t) => Witherable t where
 
-  -- | @'traverse' f ≡ 'wither' ('fmap' 'Just' . f)@
+  -- | Effectful 'mapMaybe'.
   --
   -- @'wither' ('pure' . f) ≡ 'pure' . 'mapMaybe' f@
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
@@ -211,7 +205,6 @@ class (T.Traversable t, Filterable t) => Witherable t where
 #endif
   {-# INLINE witherM #-}
 
-  -- | @'Compose' . 'fmap' ('filterA' f) . 'filterA' g ≡ 'filterA' (\x -> 'Compose' $ 'fmap' (\b -> (b&&) <$> f x) (g x)@
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA = filterAOf wither
 
