@@ -16,6 +16,8 @@
 -----------------------------------------------------------------------------
 module Data.Witherable
   ( Filterable(..)
+  , (<$?>)
+  , (<&?>)
   , Witherable(..)
   , ordNub
   , hashNub
@@ -169,6 +171,26 @@ class Functor f => Filterable f where
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
   {-# MINIMAL mapMaybe | catMaybes #-}
 #endif
+
+-- | An infix alias for 'mapMaybe'. The name of the operator alludes
+-- to '<$>', and has the same fixity.
+--
+-- @since 0.3.1
+(<$?>) :: Filterable f => (a -> Maybe b) -> f a -> f b
+(<$?>) = mapMaybe
+infixl 4 <$?>
+
+-- | Flipped version of '<$?>', the 'Filterable' version of
+-- 'Data.Functor.<&>'. It has the same fixity as 'Data.Functor.<&>'.
+--
+-- @
+-- ('<&?>') = 'flip' 'mapMaybe'
+-- @
+--
+-- @since 0.3.1
+(<&?>) :: Filterable f => f a -> (a -> Maybe b) -> f b
+as <&?> f = mapMaybe f as
+infixl 1 <&?>
 
 -- | An enhancement of 'Traversable' with 'Filterable'
 --
