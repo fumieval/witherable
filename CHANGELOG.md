@@ -1,3 +1,8 @@
+0.3.1
+-------
+* Added `(<$?>)` as an alias for `mapMaybe`, with fixity matching `(<$>)`.
+* Added `(<&?>) = flip (<$?>)`, with fixity matching `(<&>)`.
+
 0.3
 -------
 * Added `(Filterable f, Filterable g) => Filterable (Product f g)`
