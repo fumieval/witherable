@@ -41,6 +41,7 @@ where
 import qualified Data.Maybe as Maybe
 import qualified Data.IntMap.Lazy as IM
 import qualified Data.Map.Lazy as M
+import qualified Data.Map.Monoidal as MM
 import qualified Data.Sequence as S
 import qualified Data.Vector as V
 import qualified Data.HashMap.Lazy as HM
@@ -316,6 +317,10 @@ instance Witherable (M.Map k) where
 #if MIN_VERSION_containers(0,5,8)
   wither f = M.traverseMaybeWithKey (const f)
 #endif
+
+instance Filterable (MM.MonoidalMap k) where
+  mapMaybe = MM.mapMaybe
+  filter = MM.filter
 
 instance (Eq k, Hashable k) => Filterable (HM.HashMap k) where
   mapMaybe = HM.mapMaybe
