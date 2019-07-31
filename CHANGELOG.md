@@ -1,7 +1,7 @@
 Unreleased
 ----------
 
-* Added `Filterable (MonoidalMap k)`
+* Added `Filterable (MonoidalMap k)` and `Witherable (MonoidalMap k)`
 
 0.3.1
 -------

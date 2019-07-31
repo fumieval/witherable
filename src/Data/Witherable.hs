@@ -322,6 +322,8 @@ instance Filterable (MM.MonoidalMap k) where
   mapMaybe = MM.mapMaybe
   filter = MM.filter
 
+instance Witherable (MM.MonoidalMap k)
+
 instance (Eq k, Hashable k) => Filterable (HM.HashMap k) where
   mapMaybe = HM.mapMaybe
   filter = HM.filter
