@@ -1,3 +1,8 @@
+Unreleased
+----------
+
+* Added `Filterable (MonoidalMap k)`
+
 0.3.1
 -------
 * Added `(<$?>)` as an alias for `mapMaybe`, with fixity matching `(<$>)`.

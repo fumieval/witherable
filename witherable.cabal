@@ -26,6 +26,7 @@ library
                        base-orphans,
                        containers >= 0.5,
                        hashable,
+                       monoidal-containers,
                        transformers,
                        transformers-compat,
                        unordered-containers,
