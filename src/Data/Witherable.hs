@@ -1,5 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE CPP, DeriveFunctor, DeriveFoldable, DeriveTraversable, StandaloneDeriving, UndecidableInstances, FlexibleContexts #-}
+{-# LANGUAGE CPP, DeriveFunctor, DeriveFoldable, DeriveTraversable, StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances, FlexibleContexts, GeneralizedNewtypeDeriving #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -272,6 +273,20 @@ ordNub = ordNubOf witherM
 hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
 hashNub = hashNubOf witherM
 {-# INLINE hashNub #-}
+
+-- | A default implementation for 'mapMaybe'.
+mapMaybeDefault :: (Foldable f, Alternative f) => (a -> Maybe b) -> f a -> f b
+mapMaybeDefault p = foldr (\x xs -> case p x of
+    Just a -> pure a <|> xs
+    _ -> xs) empty
+{-# INLINABLE mapMaybeDefault #-}
+
+newtype WrappedFilterable f a = WrapFilterable {unwrapFilterable :: f a} 
+  deriving (Functor, Foldable, Traversable, Applicative, Alternative)
+
+instance (Foldable f, Alternative f) => Filterable (WrappedFilterable f) where
+    {-#INLINE mapMaybe#-}
+    mapMaybe = mapMaybeDefault
 
 instance Filterable Maybe where
   mapMaybe f = (>>= f)
