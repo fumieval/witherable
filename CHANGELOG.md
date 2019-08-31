@@ -1,3 +1,8 @@
+Next
+-------
+
+* Added `FilterableWithIndex` and `WitherableWithIndex`.
+
 0.3.2
 ----------
 
