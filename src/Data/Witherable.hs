@@ -1,6 +1,9 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE CPP, DeriveFunctor, DeriveFoldable, DeriveTraversable, StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances, FlexibleContexts, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -23,6 +26,9 @@ module Data.Witherable
   , ordNub
   , hashNub
   , forMaybe
+  -- * Indexed variants
+  , FilterableWithIndex(..)
+  , WitherableWithIndex(..)
   -- * Generalization
   , FilterLike, Filter, FilterLike', Filter'
   , witherOf
@@ -39,6 +45,7 @@ module Data.Witherable
   )
 
 where
+import qualified Control.Lens as Lens
 import qualified Data.Maybe as Maybe
 import qualified Data.IntMap.Lazy as IM
 import qualified Data.Map.Lazy as M
@@ -63,6 +70,7 @@ import Data.Monoid
 import Data.Orphans ()
 #if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
+import Data.Void
 #endif
 import Data.Coerce (coerce)
 import Prelude -- Fix redundant import warning
@@ -194,6 +202,17 @@ infixl 4 <$?>
 as <&?> f = mapMaybe f as
 infixl 1 <&?>
 
+-- | Indexed variant of 'Filterable'.
+class (Lens.FunctorWithIndex i t, Filterable t) => FilterableWithIndex i t | t -> i where
+  imapMaybe :: (i -> a -> Maybe b) -> t a -> t b
+  imapMaybe f = catMaybes . Lens.imap f
+  {-# INLINE imapMaybe #-}
+
+  -- | @'ifilter' f . 'ifilter' g ≡ ifilter (\i -> 'liftA2' ('&&') (f i) (g i))@
+  ifilter :: (i -> a -> Bool) -> t a -> t a
+  ifilter f = imapMaybe $ \i a -> if f i a then Just a else Nothing
+  {-# INLINE ifilter #-}
+
 -- | An enhancement of 'Traversable' with 'Filterable'
 --
 -- A definition of 'wither' must satisfy the following laws:
@@ -241,6 +260,27 @@ forMaybe :: (Witherable t, Applicative f) => t a -> (a -> f (Maybe b)) -> f (t b
 forMaybe = flip wither
 {-# INLINE forMaybe #-}
 
+-- | Indexed variant of 'Witherable'.
+class (Lens.TraversableWithIndex i t, Witherable t) => WitherableWithIndex i t | t -> i where
+  -- | Effectful 'imapMaybe'.
+  --
+  -- @'iwither' (\ i -> 'pure' . f i) ≡ 'pure' . 'imapMaybe' f@
+  iwither :: (Applicative f) => (i -> a -> f (Maybe b)) -> t a -> f (t b)
+  iwither f = fmap catMaybes . Lens.itraverse f
+
+  -- | @Monadic variant of 'wither'. This may have more efficient implementation.@
+  iwitherM :: (Monad m) => (i -> a -> m (Maybe b)) -> t a -> m (t b)
+#if MIN_VERSION_base(4,8,0)
+  iwitherM = iwither
+#elif __GLASGOW_HASKELL__ >= 708
+  iwitherM f = unwrapMonad . iwither (coerce f)
+#else
+  iwitherM f = unwrapMonad . iwither (\i -> WrapMonad . f i)
+#endif
+
+  ifilterA :: (Applicative f) => (i -> a -> f Bool) -> t a -> f (t a)
+  ifilterA f = iwither (\i a -> (\b -> if b then Just a else Nothing) <$> f i a)
+
 -- | Remove the duplicate elements through a filter.
 ordNubOf :: Ord a => FilterLike' (State (Set.Set a)) s a -> s -> s
 ordNubOf w t = evalState (w f t) Set.empty
@@ -281,21 +321,45 @@ mapMaybeDefault p = foldr (\x xs -> case p x of
     _ -> xs) empty
 {-# INLINABLE mapMaybeDefault #-}
 
+-- | A default implementation for 'imapMaybe'.
+imapMaybeDefault :: (Lens.FoldableWithIndex i f, Alternative f) => (i -> a -> Maybe b) -> f a -> f b
+imapMaybeDefault p = Lens.ifoldr (\i x xs -> case p i x of
+    Just a -> pure a <|> xs
+    _ -> xs) empty
+{-# INLINABLE imapMaybeDefault #-}
+
 newtype WrappedFilterable f a = WrapFilterable {unwrapFilterable :: f a} 
   deriving (Functor, Foldable, Traversable, Applicative, Alternative)
+
+instance (Lens.FunctorWithIndex i f) => Lens.FunctorWithIndex i (WrappedFilterable f) where
+  imap f = WrapFilterable . Lens.imap f . unwrapFilterable
+
+instance (Lens.FoldableWithIndex i f) => Lens.FoldableWithIndex i (WrappedFilterable f) where
+  ifoldMap f = Lens.ifoldMap f . unwrapFilterable
+
+instance (Lens.TraversableWithIndex i f) => Lens.TraversableWithIndex i (WrappedFilterable f) where
+  itraverse f = fmap WrapFilterable . Lens.itraverse f . unwrapFilterable
 
 instance (Foldable f, Alternative f) => Filterable (WrappedFilterable f) where
     {-#INLINE mapMaybe#-}
     mapMaybe = mapMaybeDefault
 
+instance (Lens.FunctorWithIndex i f, Lens.FoldableWithIndex i f, Alternative f) => FilterableWithIndex i (WrappedFilterable f) where
+  {-# INLINE imapMaybe #-}
+  imapMaybe = imapMaybeDefault
+
 instance Filterable Maybe where
   mapMaybe f = (>>= f)
   {-# INLINE mapMaybe #-}
+
+instance FilterableWithIndex () Maybe
 
 instance Witherable Maybe where
   wither _ Nothing = pure Nothing
   wither f (Just a) = f a
   {-# INLINABLE wither #-}
+
+instance WitherableWithIndex () Maybe
 
 instance Monoid e => Filterable (Either e) where
   mapMaybe _ (Left e) = Left e
@@ -312,45 +376,80 @@ instance Filterable [] where
   catMaybes = Maybe.catMaybes
   filter = Prelude.filter
 
+instance FilterableWithIndex Int []
+
 instance Witherable [] where
   wither f = go where
     go (x:xs) = liftA2 (maybe id (:)) (f x) (go xs)
     go [] = pure []
   {-# INLINE[0] wither #-}
 
+instance WitherableWithIndex Int []
+
 instance Filterable IM.IntMap where
   mapMaybe = IM.mapMaybe
   filter = IM.filter
 
+instance FilterableWithIndex Int IM.IntMap where
+  imapMaybe = IM.mapMaybeWithKey
+  ifilter = IM.filterWithKey
+
 instance Witherable IM.IntMap where
+
+instance WitherableWithIndex Int IM.IntMap where
 
 instance Filterable (M.Map k) where
   mapMaybe = M.mapMaybe
   filter = M.filter
+
+instance FilterableWithIndex k (M.Map k) where
+  imapMaybe = M.mapMaybeWithKey
+  ifilter = M.filterWithKey
 
 instance Witherable (M.Map k) where
 #if MIN_VERSION_containers(0,5,8)
   wither f = M.traverseMaybeWithKey (const f)
 #endif
 
+instance WitherableWithIndex k (M.Map k) where
+#if MIN_VERSION_containers(0,5,8)
+  iwither = M.traverseMaybeWithKey
+#endif
+
 instance Filterable (MM.MonoidalMap k) where
   mapMaybe = MM.mapMaybe
   filter = MM.filter
 
+instance FilterableWithIndex k (MM.MonoidalMap k) where
+  imapMaybe = MM.mapMaybeWithKey
+  ifilter = MM.filterWithKey
+
 instance Witherable (MM.MonoidalMap k)
+
+instance WitherableWithIndex k (MM.MonoidalMap k)
 
 instance (Eq k, Hashable k) => Filterable (HM.HashMap k) where
   mapMaybe = HM.mapMaybe
   filter = HM.filter
 
+instance (Eq k, Hashable k) => FilterableWithIndex k (HM.HashMap k) where
+  imapMaybe = HM.mapMaybeWithKey
+  ifilter = HM.filterWithKey
+
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
 
+instance (Eq k, Hashable k) => WitherableWithIndex k (HM.HashMap k) where
+  
 #if (MIN_VERSION_base(4,7,0))
 instance Filterable Proxy where
  mapMaybe _ Proxy = Proxy
 
+instance FilterableWithIndex Void Proxy
+
 instance Witherable Proxy where
   wither _ Proxy = pure Proxy
+
+instance WitherableWithIndex Void Proxy
 #endif
 
 instance Filterable (Const r) where
@@ -364,17 +463,27 @@ instance Witherable (Const r) where
 instance Filterable V.Vector where
   mapMaybe = V.mapMaybe
 
+instance FilterableWithIndex Int V.Vector where
+  imapMaybe = V.imapMaybe
+  ifilter = V.ifilter
+
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
   {-# INLINABLE wither #-}
+
+instance WitherableWithIndex Int V.Vector
 
 instance Filterable S.Seq where
   mapMaybe f = S.fromList . mapMaybe f . F.toList
   {-# INLINABLE mapMaybe #-}
 
+instance FilterableWithIndex Int S.Seq
+
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
   {-# INLINABLE wither #-}
+
+instance WitherableWithIndex Int S.Seq
 
 -- The instances for Compose, Product, and Sum are not entirely
 -- unique. Any particular composition, product, or sum of functors
@@ -383,28 +492,54 @@ instance Witherable S.Seq where
 instance (Functor f, Filterable g) => Filterable (Compose f g) where
   mapMaybe f = Compose . fmap (mapMaybe f) . getCompose
 
+instance (Lens.FunctorWithIndex i f, FilterableWithIndex j g) => FilterableWithIndex (i, j) (Compose f g) where
+  imapMaybe f = Compose . Lens.imap (\i -> imapMaybe (\j -> f (i, j))) . getCompose
+
 instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
   wither f = fmap Compose . T.traverse (wither f) . getCompose
+
+instance (Lens.TraversableWithIndex i f, WitherableWithIndex j g) => WitherableWithIndex (i, j) (Compose f g) where
+  iwither f = fmap Compose . Lens.itraverse (\i -> iwither (\j -> f (i, j))) . getCompose
 
 instance (Filterable f, Filterable g) => Filterable (P.Product f g) where
   mapMaybe f (P.Pair x y) = P.Pair (mapMaybe f x) (mapMaybe f y)
 
+instance (FilterableWithIndex i f, FilterableWithIndex j g) => FilterableWithIndex (Either i j) (P.Product f g) where
+  imapMaybe f (P.Pair x y) = P.Pair (imapMaybe (f . Left) x) (imapMaybe (f . Right) y)
+
 instance (Witherable f, Witherable g) => Witherable (P.Product f g) where
   wither f (P.Pair x y) = liftA2 P.Pair (wither f x) (wither f y)
+
+instance (WitherableWithIndex i f, WitherableWithIndex j g) => WitherableWithIndex (Either i j) (P.Product f g) where
+  iwither f (P.Pair x y) = P.Pair <$> iwither (f . Left) x <*> iwither (f . Right) y
 
 instance (Filterable f, Filterable g) => Filterable (Sum.Sum f g) where
   mapMaybe f (Sum.InL x) = Sum.InL (mapMaybe f x)
   mapMaybe f (Sum.InR y) = Sum.InR (mapMaybe f y)
 
+instance (FilterableWithIndex i f, FilterableWithIndex j g) => FilterableWithIndex (Either i j) (Sum.Sum f g) where
+  imapMaybe f (Sum.InL x) = Sum.InL (imapMaybe (f . Left) x)
+  imapMaybe f (Sum.InR y) = Sum.InR (imapMaybe (f . Right) y)
+
 instance (Witherable f, Witherable g) => Witherable (Sum.Sum f g) where
   wither f (Sum.InL x) = Sum.InL <$> wither f x
   wither f (Sum.InR y) = Sum.InR <$> wither f y
 
+instance (WitherableWithIndex i f, WitherableWithIndex j g) => WitherableWithIndex (Either i j) (Sum.Sum f g) where
+  iwither f (Sum.InL x) = Sum.InL <$> iwither (f . Left) x
+  iwither f (Sum.InR y) = Sum.InR <$> iwither (f . Right) y
+
 instance Filterable f => Filterable (IdentityT f) where
   mapMaybe f (IdentityT m) = IdentityT (mapMaybe f m)
 
+instance (FilterableWithIndex i f) => FilterableWithIndex i (IdentityT f) where
+  imapMaybe f (IdentityT m) = IdentityT (imapMaybe f m)
+
 instance Witherable f => Witherable (IdentityT f) where
   wither f (IdentityT m) = IdentityT <$> wither f m
+
+instance (WitherableWithIndex i f) => WitherableWithIndex i (IdentityT f) where
+  iwither f (IdentityT m) = IdentityT <$> iwither f m
 
 instance Functor f => Filterable (MaybeT f) where
   mapMaybe f = MaybeT . fmap (mapMaybe f) . runMaybeT
