@@ -1,7 +1,8 @@
-Next
+0.3.3
 -------
 
 * Added `FilterableWithIndex` and `WitherableWithIndex`.
+* Added `WrappedFoldable`
 
 0.3.2
 ----------
