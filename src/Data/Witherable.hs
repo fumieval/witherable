@@ -328,23 +328,23 @@ imapMaybeDefault p = Lens.ifoldr (\i x xs -> case p i x of
     _ -> xs) empty
 {-# INLINABLE imapMaybeDefault #-}
 
-newtype WrappedFilterable f a = WrapFilterable {unwrapFilterable :: f a} 
+newtype WrappedFoldable f a = WrapFilterable {unwrapFoldable :: f a}
   deriving (Functor, Foldable, Traversable, Applicative, Alternative)
 
-instance (Lens.FunctorWithIndex i f) => Lens.FunctorWithIndex i (WrappedFilterable f) where
-  imap f = WrapFilterable . Lens.imap f . unwrapFilterable
+instance (Lens.FunctorWithIndex i f) => Lens.FunctorWithIndex i (WrappedFoldable f) where
+  imap f = WrapFilterable . Lens.imap f . unwrapFoldable
 
-instance (Lens.FoldableWithIndex i f) => Lens.FoldableWithIndex i (WrappedFilterable f) where
-  ifoldMap f = Lens.ifoldMap f . unwrapFilterable
+instance (Lens.FoldableWithIndex i f) => Lens.FoldableWithIndex i (WrappedFoldable f) where
+  ifoldMap f = Lens.ifoldMap f . unwrapFoldable
 
-instance (Lens.TraversableWithIndex i f) => Lens.TraversableWithIndex i (WrappedFilterable f) where
-  itraverse f = fmap WrapFilterable . Lens.itraverse f . unwrapFilterable
+instance (Lens.TraversableWithIndex i f) => Lens.TraversableWithIndex i (WrappedFoldable f) where
+  itraverse f = fmap WrapFilterable . Lens.itraverse f . unwrapFoldable
 
-instance (Foldable f, Alternative f) => Filterable (WrappedFilterable f) where
+instance (Foldable f, Alternative f) => Filterable (WrappedFoldable f) where
     {-#INLINE mapMaybe#-}
     mapMaybe = mapMaybeDefault
 
-instance (Lens.FunctorWithIndex i f, Lens.FoldableWithIndex i f, Alternative f) => FilterableWithIndex i (WrappedFilterable f) where
+instance (Lens.FunctorWithIndex i f, Lens.FoldableWithIndex i f, Alternative f) => FilterableWithIndex i (WrappedFoldable f) where
   {-# INLINE imapMaybe #-}
   imapMaybe = imapMaybeDefault
 
@@ -377,6 +377,8 @@ instance Filterable [] where
   filter = Prelude.filter
 
 instance FilterableWithIndex Int []
+
+instance (Alternative f, Traversable f) => Witherable (WrappedFoldable f)
 
 instance Witherable [] where
   wither f = go where
@@ -439,7 +441,7 @@ instance (Eq k, Hashable k) => FilterableWithIndex k (HM.HashMap k) where
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
 
 instance (Eq k, Hashable k) => WitherableWithIndex k (HM.HashMap k) where
-  
+
 #if (MIN_VERSION_base(4,7,0))
 instance Filterable Proxy where
  mapMaybe _ Proxy = Proxy
