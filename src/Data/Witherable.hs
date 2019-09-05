@@ -315,8 +315,8 @@ hashNub = hashNubOf witherM
 {-# INLINE hashNub #-}
 
 -- | A default implementation for 'mapMaybe'.
-mapMaybeDefault :: (Foldable f, Alternative f) => (a -> Maybe b) -> f a -> f b
-mapMaybeDefault p = foldr (\x xs -> case p x of
+mapMaybeDefault :: (F.Foldable f, Alternative f) => (a -> Maybe b) -> f a -> f b
+mapMaybeDefault p = F.foldr (\x xs -> case p x of
     Just a -> pure a <|> xs
     _ -> xs) empty
 {-# INLINABLE mapMaybeDefault #-}
@@ -329,7 +329,7 @@ imapMaybeDefault p = Lens.ifoldr (\i x xs -> case p i x of
 {-# INLINABLE imapMaybeDefault #-}
 
 newtype WrappedFoldable f a = WrapFilterable {unwrapFoldable :: f a}
-  deriving (Functor, Foldable, Traversable, Applicative, Alternative)
+  deriving (Functor, F.Foldable, T.Traversable, Applicative, Alternative)
 
 instance (Lens.FunctorWithIndex i f) => Lens.FunctorWithIndex i (WrappedFoldable f) where
   imap f = WrapFilterable . Lens.imap f . unwrapFoldable
@@ -340,7 +340,7 @@ instance (Lens.FoldableWithIndex i f) => Lens.FoldableWithIndex i (WrappedFoldab
 instance (Lens.TraversableWithIndex i f) => Lens.TraversableWithIndex i (WrappedFoldable f) where
   itraverse f = fmap WrapFilterable . Lens.itraverse f . unwrapFoldable
 
-instance (Foldable f, Alternative f) => Filterable (WrappedFoldable f) where
+instance (F.Foldable f, Alternative f) => Filterable (WrappedFoldable f) where
     {-#INLINE mapMaybe#-}
     mapMaybe = mapMaybeDefault
 
@@ -378,7 +378,7 @@ instance Filterable [] where
 
 instance FilterableWithIndex Int []
 
-instance (Alternative f, Traversable f) => Witherable (WrappedFoldable f)
+instance (Alternative f, T.Traversable f) => Witherable (WrappedFoldable f)
 
 instance Witherable [] where
   wither f = go where

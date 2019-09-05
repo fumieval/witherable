@@ -32,6 +32,8 @@ library
                        transformers-compat,
                        unordered-containers,
                        vector
+  if impl(ghc < 7.9)
+    build-depends:     void
   hs-source-dirs:      src
   ghc-options:         -Wall
   default-language:    Haskell2010
