@@ -64,6 +64,7 @@ import Data.Functor.Sum as Sum
 import Control.Monad.Trans.Identity
 import Data.Hashable
 import Data.Functor.Identity
+import Data.Semigroup (Option (..))
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.State.Strict
 import Data.Monoid
@@ -360,6 +361,18 @@ instance Witherable Maybe where
   {-# INLINABLE wither #-}
 
 instance WitherableWithIndex () Maybe
+
+instance Filterable Option where
+  mapMaybe f = (>>= Option . f)
+  {-# INLINE mapMaybe #-}
+
+instance Witherable Option where
+  wither f (Option x) = Option <$> wither f x
+  {-# INLINE wither #-}
+
+-- Option doesn't have the necessary instances in Lens
+--instance FilterableWithIndex () Option
+--instance WitherableWithIndex () Option
 
 instance Monoid e => Filterable (Either e) where
   mapMaybe _ (Left e) = Left e
