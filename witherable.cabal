@@ -1,5 +1,5 @@
 name:                witherable
-version:             0.3.3
+version:             0.3.4
 synopsis:            filterable traversable
 description:         A stronger variant of `traverse` which can remove elements and generalised mapMaybe, catMaybes, filter
 homepage:            https://github.com/fumieval/witherable
