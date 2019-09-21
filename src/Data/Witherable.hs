@@ -42,6 +42,8 @@ module Data.Witherable
    -- * Cloning
   , cloneFilter
   , Peat(..)
+  -- * Wrapper
+  , WrappedFoldable(..)
   )
 
 where
