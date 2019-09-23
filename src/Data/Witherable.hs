@@ -7,6 +7,9 @@
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE EmptyCase #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Witherable
@@ -55,6 +58,7 @@ import qualified Data.Vector as V
 import qualified Data.HashMap.Lazy as HM
 import qualified Data.Set as Set
 import qualified Data.HashSet as HSet
+import qualified GHC.Generics as Generics
 import Control.Applicative
 import qualified Data.Traversable as T
 import qualified Data.Foldable as F
@@ -561,3 +565,79 @@ instance Functor f => Filterable (MaybeT f) where
 
 instance (T.Traversable t) => Witherable (MaybeT t) where
   wither f = fmap MaybeT . T.traverse (wither f) . runMaybeT
+
+#if __GLASGOW_HASKELL__ >= 708
+instance Filterable Generics.V1 where
+  mapMaybe _ v = case v of {}
+  catMaybes v = case v of {}
+  filter _ v = case v of {}
+
+instance Witherable Generics.V1 where
+  wither _ v = case v of {}
+  filterA _ v = case v of {}
+#endif
+
+instance Filterable Generics.U1 where
+  mapMaybe _ _ = Generics.U1
+  catMaybes _ = Generics.U1
+  filter _ _ = Generics.U1
+
+instance Witherable Generics.U1 where
+  wither _ _ = pure Generics.U1
+  filterA _ _ = pure Generics.U1
+
+instance Filterable f => Filterable (Generics.Rec1 f) where
+  mapMaybe f (Generics.Rec1 a) = Generics.Rec1 (mapMaybe f a)
+  catMaybes (Generics.Rec1 a) = Generics.Rec1 (catMaybes a)
+  filter f (Generics.Rec1 a) = Generics.Rec1 (Data.Witherable.filter f a)
+
+instance Witherable f => Witherable (Generics.Rec1 f) where
+  wither f (Generics.Rec1 a) = fmap Generics.Rec1 (wither f a)
+  witherM f (Generics.Rec1 a) = fmap Generics.Rec1 (witherM f a)
+  filterA f (Generics.Rec1 a) = fmap Generics.Rec1 (Data.Witherable.filterA f a)
+
+instance Filterable f => Filterable (Generics.M1 i c f) where
+  mapMaybe f (Generics.M1 a) = Generics.M1 (mapMaybe f a)
+  catMaybes (Generics.M1 a) = Generics.M1 (catMaybes a)
+  filter f (Generics.M1 a) = Generics.M1 (Data.Witherable.filter f a)
+
+instance Witherable f => Witherable (Generics.M1 i c f) where
+  wither f (Generics.M1 a) = fmap Generics.M1 (wither f a)
+  witherM f (Generics.M1 a) = fmap Generics.M1 (witherM f a)
+  filterA f (Generics.M1 a) = fmap Generics.M1 (Data.Witherable.filterA f a)
+
+instance (Filterable f, Filterable g) => Filterable ((Generics.:*:) f g) where
+  mapMaybe f (a Generics.:*: b) = mapMaybe f a Generics.:*: mapMaybe f b
+  catMaybes (a Generics.:*: b) = catMaybes a Generics.:*: catMaybes b
+  filter f (a Generics.:*: b) = Data.Witherable.filter f a Generics.:*: Data.Witherable.filter f b
+
+instance (Witherable f, Witherable g) => Witherable ((Generics.:*:) f g) where
+  wither f (a Generics.:*: b) = liftA2 (Generics.:*:) (wither f a) (wither f b)
+  witherM f (a Generics.:*: b) = liftA2 (Generics.:*:) (witherM f a) (witherM f b)
+  filterA f (a Generics.:*: b) = liftA2 (Generics.:*:) (filterA f a) (filterA f b)
+  
+instance (Filterable f, Filterable g) => Filterable ((Generics.:+:) f g) where
+  mapMaybe f (Generics.L1 a) = Generics.L1 (mapMaybe f a)
+  mapMaybe f (Generics.R1 a) = Generics.R1 (mapMaybe f a)
+  catMaybes (Generics.L1 a) = Generics.L1 (catMaybes a)
+  catMaybes (Generics.R1 a) = Generics.R1 (catMaybes a)
+  filter f (Generics.L1 a) = Generics.L1 (Data.Witherable.filter f a)
+  filter f (Generics.R1 a) = Generics.R1 (Data.Witherable.filter f a)
+
+instance (Witherable f, Witherable g) => Witherable ((Generics.:+:) f g) where
+  wither f (Generics.L1 a) = fmap Generics.L1 (wither f a)
+  wither f (Generics.R1 a) = fmap Generics.R1 (wither f a)
+  witherM f (Generics.L1 a) = fmap Generics.L1 (witherM f a)
+  witherM f (Generics.R1 a) = fmap Generics.R1 (witherM f a)
+  filterA f (Generics.L1 a) = fmap Generics.L1 (filterA f a)
+  filterA f (Generics.R1 a) = fmap Generics.R1 (filterA f a)
+
+instance (Functor f, Filterable g) => Filterable ((Generics.:.:) f g) where
+  mapMaybe f = Generics.Comp1 . fmap (mapMaybe f) . Generics.unComp1
+  catMaybes = Generics.Comp1 . fmap catMaybes . Generics.unComp1
+  filter f = Generics.Comp1 . fmap (Data.Witherable.filter f) . Generics.unComp1
+  
+instance (T.Traversable f, Witherable g) => Witherable ((Generics.:.:) f g) where
+  wither f = fmap Generics.Comp1 . T.traverse (wither f) . Generics.unComp1
+  witherM f = fmap Generics.Comp1 . T.traverse (witherM f) . Generics.unComp1
+  filterA f = fmap Generics.Comp1 . T.traverse (filterA f) . Generics.unComp1
