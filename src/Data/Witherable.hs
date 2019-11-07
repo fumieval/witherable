@@ -395,6 +395,13 @@ instance Filterable [] where
 
 instance FilterableWithIndex Int []
 
+instance Filterable ZipList where
+  mapMaybe f = ZipList . Maybe.mapMaybe f . getZipList
+  catMaybes = ZipList . Maybe.catMaybes . getZipList
+  filter f = ZipList . Prelude.filter f . getZipList
+
+instance FilterableWithIndex Int ZipList
+
 instance (Alternative f, T.Traversable f) => Witherable (WrappedFoldable f)
 
 instance Witherable [] where
@@ -404,6 +411,11 @@ instance Witherable [] where
   {-# INLINE[0] wither #-}
 
 instance WitherableWithIndex Int []
+
+instance Witherable ZipList where
+  wither f = fmap ZipList . wither f . getZipList
+
+instance WitherableWithIndex Int ZipList
 
 instance Filterable IM.IntMap where
   mapMaybe = IM.mapMaybe
