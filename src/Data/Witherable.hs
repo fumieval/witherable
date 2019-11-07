@@ -627,7 +627,7 @@ instance (Witherable f, Witherable g) => Witherable ((Generics.:*:) f g) where
   wither f (a Generics.:*: b) = liftA2 (Generics.:*:) (wither f a) (wither f b)
   witherM f (a Generics.:*: b) = liftA2 (Generics.:*:) (witherM f a) (witherM f b)
   filterA f (a Generics.:*: b) = liftA2 (Generics.:*:) (filterA f a) (filterA f b)
-  
+
 instance (Filterable f, Filterable g) => Filterable ((Generics.:+:) f g) where
   mapMaybe f (Generics.L1 a) = Generics.L1 (mapMaybe f a)
   mapMaybe f (Generics.R1 a) = Generics.R1 (mapMaybe f a)
@@ -648,7 +648,7 @@ instance (Functor f, Filterable g) => Filterable ((Generics.:.:) f g) where
   mapMaybe f = Generics.Comp1 . fmap (mapMaybe f) . Generics.unComp1
   catMaybes = Generics.Comp1 . fmap catMaybes . Generics.unComp1
   filter f = Generics.Comp1 . fmap (Data.Witherable.filter f) . Generics.unComp1
-  
+
 instance (T.Traversable f, Witherable g) => Witherable ((Generics.:.:) f g) where
   wither f = fmap Generics.Comp1 . T.traverse (wither f) . Generics.unComp1
   witherM f = fmap Generics.Comp1 . T.traverse (witherM f) . Generics.unComp1
