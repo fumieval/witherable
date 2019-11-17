@@ -1,3 +1,9 @@
+0.3.5
+-------
+
+* Make `wither` and `witherM` methods of `Witherable []` instance
+  good consumers for list fusion.
+
 0.3.3
 -------
 
