@@ -408,11 +408,18 @@ instance FilterableWithIndex Int ZipList
 
 instance (Alternative f, T.Traversable f) => Witherable (WrappedFoldable f)
 
+-- | Methods are good consumers for fusion.
 instance Witherable [] where
-  wither f = go where
-    go (x:xs) = liftA2 (maybe id (:)) (f x) (go xs)
-    go [] = pure []
-  {-# INLINE[0] wither #-}
+  wither f = foldr go (pure []) where
+    go x r = liftA2 (maybe id (:)) (f x) r
+  {-# INLINE wither #-}
+  witherM f = foldr go (pure []) where
+    go x r = f x >>=
+      (\z -> case z of
+        Nothing -> r
+        Just y -> ((:) y) <$> r
+      )
+  {-# INLINE witherM #-}
 
   -- Compared to the default, this fuses an fmap into a liftA2.
   filterA p = go where
