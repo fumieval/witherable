@@ -4,12 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
-#if __GLASGOW_HASKELL__ >= 702
-{-# LANGUAGE Trustworthy #-}
-#endif
-#if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE EmptyCase #-}
-#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Witherable
@@ -79,10 +74,8 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.State.Strict
 import Data.Monoid
 import Data.Orphans ()
-#if (MIN_VERSION_base(4,7,0))
 import Data.Proxy
 import Data.Void
-#endif
 import Data.Coerce (coerce)
 import qualified Prelude
 import Prelude hiding (filter)
@@ -146,11 +139,7 @@ forMaybeOf = flip
 -- unknown arity, we don't want to slow things down to raise
 -- its arity.
 idDot :: (a -> b) -> a -> Identity b
-#if __GLASGOW_HASKELL__ >= 708
 idDot = coerce
-#else
-idDot = (Identity .)
-#endif
 
 -- | 'mapMaybe' through a filter.
 mapMaybeOf :: FilterLike Identity s t a b -> (a -> Maybe b) -> s -> t
@@ -199,9 +188,7 @@ class Functor f => Filterable f where
   filter f = mapMaybe $ \a -> if f a then Just a else Nothing
   {-# INLINE filter #-}
 
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
   {-# MINIMAL mapMaybe | catMaybes #-}
-#endif
 
 -- | An infix alias for 'mapMaybe'. The name of the operator alludes
 -- to '<$>', and has the same fixity.
@@ -260,21 +247,12 @@ class (T.Traversable t, Filterable t) => Witherable t where
 
   -- | @Monadic variant of 'wither'. This may have more efficient implementation.@
   witherM :: Monad m => (a -> m (Maybe b)) -> t a -> m (t b)
-#if MIN_VERSION_base(4,8,0)
   witherM = wither
-#elif __GLASGOW_HASKELL__ >= 708
-  witherM f = unwrapMonad . wither (coerce f)
-#else
-  witherM f = unwrapMonad . wither (WrapMonad . f)
-#endif
-  {-# INLINE witherM #-}
 
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA = filterAOf wither
 
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 707
   {-# MINIMAL #-}
-#endif
 
 -- | @'forMaybe' = 'flip' 'wither'@
 forMaybe :: (Witherable t, Applicative f) => t a -> (a -> f (Maybe b)) -> f (t b)
@@ -291,13 +269,7 @@ class (Lens.TraversableWithIndex i t, Witherable t) => WitherableWithIndex i t |
 
   -- | @Monadic variant of 'wither'. This may have more efficient implementation.@
   iwitherM :: (Monad m) => (i -> a -> m (Maybe b)) -> t a -> m (t b)
-#if MIN_VERSION_base(4,8,0)
   iwitherM = iwither
-#elif __GLASGOW_HASKELL__ >= 708
-  iwitherM f = unwrapMonad . iwither (coerce f)
-#else
-  iwitherM f = unwrapMonad . iwither (\i -> WrapMonad . f i)
-#endif
 
   ifilterA :: (Applicative f) => (i -> a -> f Bool) -> t a -> f (t a)
   ifilterA f = iwither (\i a -> (\b -> if b then Just a else Nothing) <$> f i a)
@@ -499,7 +471,6 @@ instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
 
 instance (Eq k, Hashable k) => WitherableWithIndex k (HM.HashMap k) where
 
-#if (MIN_VERSION_base(4,7,0))
 instance Filterable Proxy where
  mapMaybe _ Proxy = Proxy
 
@@ -509,7 +480,6 @@ instance Witherable Proxy where
   wither _ Proxy = pure Proxy
 
 instance WitherableWithIndex Void Proxy
-#endif
 
 instance Filterable (Const r) where
   mapMaybe _ (Const r) = Const r
@@ -695,7 +665,6 @@ instance WitherableWithIndex i t => WitherableWithIndex i (Backwards t) where
   iwitherM f (Backwards xs) = Backwards <$> iwitherM f xs
   ifilterA f (Backwards xs) = Backwards <$> ifilterA f xs
 
-#if __GLASGOW_HASKELL__ >= 708
 instance Filterable Generics.V1 where
   mapMaybe _ v = case v of {}
   catMaybes v = case v of {}
@@ -704,7 +673,6 @@ instance Filterable Generics.V1 where
 instance Witherable Generics.V1 where
   wither _ v = pure $ case v of {}
   filterA _ v = pure $ case v of {}
-#endif
 
 instance Filterable Generics.U1 where
   mapMaybe _ _ = Generics.U1
