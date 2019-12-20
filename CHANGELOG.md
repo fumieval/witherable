@@ -4,6 +4,8 @@
 * Make `wither` and `witherM` methods of `Witherable []` instance
   good consumers for list fusion.
 * Added instances for `Reverse`, `Backwards`, `ZipList`, and types from `GHC.Generics`
+* Added `Wither`, `WitherLike`, `Wither'` and `WitherLike'`, deprecating `Filter` and the variants
+* Moved `Filterable` and `Witherable` into a separate package, `witherable-class`
 
 0.3.4
 -------

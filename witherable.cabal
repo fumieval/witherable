@@ -31,7 +31,8 @@ library
                        transformers,
                        transformers-compat,
                        unordered-containers,
-                       vector
+                       vector,
+                       witherable-class
   if impl(ghc < 7.9)
     build-depends:     void
   hs-source-dirs:      src
