@@ -33,6 +33,7 @@ module Data.Witherable
   , FilterableWithIndex(..)
   , WitherableWithIndex(..)
   -- * Generalization
+  , WitherLike, Wither, WitherLike', Wither'
   , FilterLike, Filter, FilterLike', Filter'
   , witherOf
   , forMaybeOf
@@ -86,18 +87,27 @@ import Data.Coerce (coerce)
 import qualified Prelude
 import Prelude hiding (filter)
 
+type Filter s t a b = Wither s t a b
+{-# DEPRECATED Filter "Use Wither instead" #-}
+type FilterLike f s t a b = WitherLike f s t a b
+{-# DEPRECATED FilterLike "Use WitherLike instead" #-}
+type Filter' s a = Wither' s a
+{-# DEPRECATED Filter' "Use Filter' instead" #-}
+type FilterLike' f s a = WitherLike' f s a
+{-# DEPRECATED FilterLike' "Use WitherLike' instead" #-}
+
 -- | This type allows combinators to take a 'Filter' specializing the parameter @f@.
-type FilterLike f s t a b = (a -> f (Maybe b)) -> s -> f t
+type WitherLike f s t a b = (a -> f (Maybe b)) -> s -> f t
 
--- | A 'Filter' is like a <http://hackage.haskell.org/package/lens-4.13.2.1/docs/Control-Lens-Type.html#t:Traversal Traversal>,
+-- | A 'Wither' is like a <http://hackage.haskell.org/package/lens-4.13.2.1/docs/Control-Lens-Type.html#t:Traversal Traversal>,
 -- but you can also remove targets.
-type Filter s t a b = forall f. Applicative f => FilterLike f s t a b
+type Wither s t a b = forall f. Applicative f => WitherLike f s t a b
 
--- | A simple 'FilterLike'.
-type FilterLike' f s a = FilterLike f s s a a
+-- | A simple 'WitherLike'.
+type WitherLike' f s a = WitherLike f s s a a
 
--- | A simple 'Filter'.
-type Filter' s a = forall f. Applicative f => FilterLike' f s a
+-- | A simple 'Wither'.
+type Wither' s a = forall f. Applicative f => WitherLike' f s a
 
 -- | This is used to characterize and clone a 'Filter'.
 -- Since @FilterLike (Peat a b) s t a b@ is monomorphic, it can be used to store a filter in a container.
