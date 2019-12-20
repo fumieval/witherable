@@ -3,6 +3,11 @@
 
 * Make `wither` and `witherM` methods of `Witherable []` instance
   good consumers for list fusion.
+* Added instances for `Reverse`, `Backwards`, `ZipList`, and types from `GHC.Generics`
+
+0.3.4
+-------
+* Exported `WrappedFoldable`
 
 0.3.3
 -------

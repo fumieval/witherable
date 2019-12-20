@@ -428,20 +428,6 @@ instance Witherable [] where
     go (x:xs) = liftA2 (bool id (x :)) (p x) (go xs)
     go [] = pure []
 
-{- TODO: Do we want to use something like this?
-
-  -- This is optimized for monads like IO. When there are
-  -- many Nothing values, 'wither' will hold on to all of
-  -- them until the end. 'witherM', on the other hand, can
-  -- drop them as it goes.
-  witherM f = go where
-    go (x:xs) = do
-      my <- f x
-      case my of
-        Nothing -> go xs
-        Just y -> (y:) <$> go xs
--}
-
 instance WitherableWithIndex Int []
 
 instance Witherable ZipList where
