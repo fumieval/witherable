@@ -95,6 +95,9 @@ class Functor f => Filterable f where
 --
 -- Parametricity implies the naturality law:
 --
+-- Whenever @t@ is an //applicative transformation// in the sense described in the
+-- 'Traversable' documentation,
+--
 --   @t . 'wither' f ≡ 'wither' (t . f)@
 --
 
