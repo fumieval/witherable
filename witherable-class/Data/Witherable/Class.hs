@@ -100,6 +100,8 @@ class Functor f => Filterable f where
 --
 --   @t . 'wither' f ≡ 'wither' (t . f)@
 --
+-- See the @Properties.md@ file in the git distribution for some special properties of
+-- empty containers.
 
 class (T.Traversable t, Filterable t) => Witherable t where
 
