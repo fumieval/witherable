@@ -76,7 +76,7 @@ class Functor f => Filterable f where
   catMaybes = mapMaybe id
   {-# INLINE catMaybes #-}
 
-  -- | @'filter' f . 'filter' g ≡ filter ('liftA2' ('&&') f g)@
+  -- | @'filter' f . 'filter' g ≡ filter ('liftA2' ('&&') g f)@
   filter :: (a -> Bool) -> f a -> f a
   filter f = mapMaybe $ \a -> if f a then Just a else Nothing
   {-# INLINE filter #-}
