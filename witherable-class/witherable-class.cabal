@@ -18,10 +18,12 @@ source-repository head
 
 library
   exposed-modules:     Data.Witherable.Class
-  build-depends:       base == 4.*, containers, transformers
-    , unordered-containers
-    , vector
-    , base-orphans
-    , hashable
+  build-depends:       base >= 4.8 && <5
+    , containers ^>= 0.6
+    , transformers ^>= 0.5
+    , unordered-containers ^>= 0.2
+    , vector ^>= 0.12
+    , base-orphans ^>= 0.8
+    , hashable ^>= 1.3
   -- hs-source-dirs:
   default-language:    Haskell2010
