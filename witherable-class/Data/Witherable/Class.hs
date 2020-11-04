@@ -352,6 +352,15 @@ instance Witherable Generics.U1 where
   wither _ _ = pure Generics.U1
   filterA _ _ = pure Generics.U1
 
+instance Filterable (Generics.K1 i c) where
+  mapMaybe _ (Generics.K1 a) = Generics.K1 a
+  catMaybes (Generics.K1 a) = Generics.K1 a
+  filter _ (Generics.K1 a) = Generics.K1 a
+
+instance Witherable (Generics.K1 i c) where
+  wither _ (Generics.K1 a) = pure (Generics.K1 a)
+  filterA _ (Generics.K1 a) = pure (Generics.K1 a)
+
 instance Filterable f => Filterable (Generics.Rec1 f) where
   mapMaybe f (Generics.Rec1 a) = Generics.Rec1 (mapMaybe f a)
   catMaybes (Generics.Rec1 a) = Generics.Rec1 (catMaybes a)
