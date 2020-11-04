@@ -5,6 +5,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ConstraintKinds #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Witherable.Class
@@ -19,6 +23,7 @@
 module Data.Witherable.Class
   ( Filterable(..)
   , Witherable(..)
+  , FromGeneric(..)
   )
 
 where
@@ -50,7 +55,8 @@ import Data.Monoid
 import Data.Orphans ()
 import Data.Proxy
 import Data.Void
-import Data.Coerce (coerce)
+import Data.Coerce (Coercible, coerce)
+import Data.Kind (Constraint)
 import qualified Prelude
 import Prelude hiding (filter)
 
@@ -83,6 +89,8 @@ class Functor f => Filterable f where
 
   {-# MINIMAL mapMaybe | catMaybes #-}
 
+type Representational1 f = forall a b. Coercible a b => Coercible (f a) (f b) :: Constraint
+
 -- | An enhancement of 'Traversable' with 'Filterable'
 --
 -- A definition of 'wither' must satisfy the following laws:
@@ -108,15 +116,15 @@ class (T.Traversable t, Filterable t) => Witherable t where
   -- | Effectful 'mapMaybe'.
   --
   -- @'wither' ('pure' . f) ≡ 'pure' . 'mapMaybe' f@
-  wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
+  wither :: (Applicative f, Representational1 f) => (a -> f (Maybe b)) -> t a -> f (t b)
   wither f = fmap catMaybes . T.traverse f
   {-# INLINE wither #-}
 
   -- | @Monadic variant of 'wither'. This may have more efficient implementation.@
-  witherM :: Monad m => (a -> m (Maybe b)) -> t a -> m (t b)
+  witherM :: (Monad m, Representational1 m) => (a -> m (Maybe b)) -> t a -> m (t b)
   witherM = wither
 
-  filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
+  filterA :: (Applicative f, Representational1 f) => (a -> f Bool) -> t a -> f (t a)
   filterA f = wither $ \a -> (\b -> if b then Just a else Nothing) <$> f a
 
   {-# MINIMAL #-}
@@ -416,3 +424,14 @@ instance (T.Traversable f, Witherable g) => Witherable ((Generics.:.:) f g) wher
   wither f = fmap Generics.Comp1 . T.traverse (wither f) . Generics.unComp1
   witherM f = fmap Generics.Comp1 . T.mapM (witherM f) . Generics.unComp1
   filterA f = fmap Generics.Comp1 . T.traverse (filterA f) . Generics.unComp1
+
+newtype FromGeneric f a = FromGeneric { fromGeneric :: f a } deriving (Functor, Foldable, Traversable)
+
+instance (Filterable f, Generics.Generic1 f, Filterable (Generics.Rep1 f)) => Filterable (FromGeneric f) where
+  catMaybes = FromGeneric . Generics.to1 . catMaybes . Generics.from1 . fromGeneric
+  mapMaybe f = FromGeneric . Generics.to1 . mapMaybe f . Generics.from1 . fromGeneric
+  filter p = FromGeneric . Generics.to1 . filter p . Generics.from1 . fromGeneric
+
+instance (Filterable f, Traversable f, Generics.Generic1 f, Filterable (Generics.Rep1 f), Witherable (Generics.Rep1 f)) => Witherable (FromGeneric f) where
+  wither f = fmap (FromGeneric . Generics.to1) . wither f . Generics.from1 . fromGeneric
+  filterA p = fmap (FromGeneric . Generics.to1) . filterA p . Generics.from1 . fromGeneric
