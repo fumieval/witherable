@@ -119,6 +119,10 @@ class (T.Traversable t, Filterable t) => Witherable t where
   filterA :: Applicative f => (a -> f Bool) -> t a -> f (t a)
   filterA f = wither $ \a -> (\b -> if b then Just a else Nothing) <$> f a
 
+  witherMap :: (Applicative m) => (t b -> r) -> (a -> m (Maybe b)) -> t a -> m r
+  witherMap p f = fmap p . wither f
+  {-# INLINE witherMap #-}
+
   {-# MINIMAL #-}
 
 -- | A default implementation for 'mapMaybe'.
