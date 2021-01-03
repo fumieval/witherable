@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                witherable-class
-version:             0
+version:             0.1
 synopsis:            Witherable = Traversable + Filterable
 -- description:
 -- bug-reports:
