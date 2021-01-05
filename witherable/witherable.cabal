@@ -32,7 +32,6 @@ library
                        transformers-compat,
                        unordered-containers,
                        vector,
-                       witherable-class,
                        indexed-traversable,
                        indexed-traversable-instances,
   if impl(ghc < 7.9)
