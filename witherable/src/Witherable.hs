@@ -22,7 +22,9 @@ module Witherable
   , (<&?>)
   , Witherable(..)
   , ordNub
+  , ordNubOn
   , hashNub
+  , hashNubOn
   , forMaybe
   -- * Indexed variants
   , FilterableWithIndex(..)
@@ -592,22 +594,34 @@ forMaybe = flip wither
 --   occurrence. This is asymptotically faster than using
 --   'Data.List.nub' from "Data.List".
 ordNub :: (Witherable t, Ord a) => t a -> t a
-ordNub t = evalState (witherM f t) Set.empty where
-    f a = state $ \s -> if Set.member a s
-      then (Nothing, s)
-      else (Just a, Set.insert a s)
+ordNub = ordNubOn id
 {-# INLINE ordNub #-}
+
+-- | The 'ordNubOn' function behaves just like 'ordNub',
+--   except it uses a another type to determine equivalence classes.
+ordNubOn :: (Witherable t, Ord b) => (a -> b) -> t a -> t a
+ordNubOn p t = evalState (witherM f t) Set.empty where
+    f a = let b = p a in state $ \s -> if Set.member b s
+      then (Nothing, s)
+      else (Just a, Set.insert b s)
+{-# INLINE ordNubOn #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
 --   occurrence. This is usually faster than 'ordNub', especially for
 --   things that have a slow comparison (like 'String').
 hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
-hashNub t = evalState (witherM f t) HSet.empty
-  where
-    f a = state $ \s -> if HSet.member a s
-      then (Nothing, s)
-      else (Just a, HSet.insert a s)
+hashNub = hashNubOn id
 {-# INLINE hashNub #-}
+
+-- | The 'hashNubOn' function behaves just like 'ordNub',
+--   except it uses a another type to determine equivalence classes.
+hashNubOn :: (Witherable t, Eq b, Hashable b) => (a -> b) -> t a -> t a
+hashNubOn p t = evalState (witherM f t) HSet.empty
+  where
+    f a = let b = p a in state $ \s -> if HSet.member b s
+      then (Nothing, s)
+      else (Just a, HSet.insert b s)
+{-# INLINE hashNubOn #-}
 
 -- | A default implementation for 'mapMaybe'.
 mapMaybeDefault :: (F.Foldable f, Alternative f) => (a -> Maybe b) -> f a -> f b

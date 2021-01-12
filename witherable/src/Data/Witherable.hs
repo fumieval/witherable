@@ -17,7 +17,9 @@ module Data.Witherable {-# DEPRECATED "Use Witherable instead" #-}
   , (<&?>)
   , Witherable(..)
   , ordNub
+  , ordNubOn
   , hashNub
+  , hashNubOn
   , forMaybe
   -- * Indexed variants
   , FilterableWithIndex(..)
@@ -32,7 +34,9 @@ module Data.Witherable {-# DEPRECATED "Use Witherable instead" #-}
   , filterAOf
   , filterOf
   , ordNubOf
+  , ordNubOnOf
   , hashNubOf
+  , hashNubOnOf
    -- * Cloning
   , cloneFilter
   , Peat(..)
@@ -132,19 +136,27 @@ filterOf w f = runIdentity . filterAOf w (idDot f)
 
 -- | Remove the duplicate elements through a filter.
 ordNubOf :: Ord a => FilterLike' (State (Set.Set a)) s a -> s -> s
-ordNubOf w t = evalState (w f t) Set.empty
+ordNubOf w = ordNubOnOf w id
+
+-- | Remove the duplicate elements through a filter.
+ordNubOnOf :: Ord b => FilterLike' (State (Set.Set b)) s a -> (a -> b) -> s -> s
+ordNubOnOf w p t = evalState (w f t) Set.empty
   where
-    f a = state $ \s -> if Set.member a s
+    f a = let b = p a in state $ \s -> if Set.member b s
       then (Nothing, s)
-      else (Just a, Set.insert a s)
+      else (Just a, Set.insert b s)
 {-# INLINE ordNubOf #-}
 
 -- | Remove the duplicate elements through a filter.
 -- It is often faster than 'ordNubOf', especially when the comparison is expensive.
 hashNubOf :: (Eq a, Hashable a) => FilterLike' (State (HSet.HashSet a)) s a -> s -> s
-hashNubOf w t = evalState (w f t) HSet.empty
+hashNubOf w = hashNubOnOf w id
+
+-- | Remove the duplicate elements through a filter.
+hashNubOnOf :: (Eq b, Hashable b) => FilterLike' (State (HSet.HashSet b)) s a -> (a -> b) -> s -> s
+hashNubOnOf w p t = evalState (w f t) HSet.empty
   where
-    f a = state $ \s -> if HSet.member a s
+    f a = let b = p a in state $ \s -> if HSet.member b s
       then (Nothing, s)
-      else (Just a, HSet.insert a s)
+      else (Just a, HSet.insert b s)
 {-# INLINE hashNubOf #-}

@@ -1,3 +1,7 @@
+0.4.1
+-------
+* Added `ordNubBy`, `hashNubBy`, `ordNubByOf`, and `hashNubByOf`.
+
 0.4
 -------
 * `FilterableWithIndex` and `WitherableWithIndex` are now subclasses of the ones from [indexed-traversable](https://hackage.haskell.org/package/indexed-traversable)
