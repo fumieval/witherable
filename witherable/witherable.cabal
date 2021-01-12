@@ -31,7 +31,7 @@ library
                        transformers,
                        transformers-compat,
                        unordered-containers >=0.2.12.0,
-                       vector,
+                       vector >=0.12,
                        indexed-traversable,
                        indexed-traversable-instances,
   hs-source-dirs:      src

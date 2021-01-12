@@ -2,6 +2,7 @@
 -------
 * Added `ordNubBy`, `hashNubBy`, `ordNubByOf`, and `hashNubByOf`.
 * Use `alterF` for nub-function implementations
+* Implement `witherM` in `Witherable Vector` instance.
 
 0.4
 -------
