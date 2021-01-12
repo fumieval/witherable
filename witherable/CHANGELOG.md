@@ -1,6 +1,7 @@
 0.4.1
 -------
 * Added `ordNubBy`, `hashNubBy`, `ordNubByOf`, and `hashNubByOf`.
+* Use `alterF` for nub-function implementations
 
 0.4
 -------

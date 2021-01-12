@@ -609,9 +609,19 @@ ordNub = ordNubOn id
 --
 ordNubOn :: (Witherable t, Ord b) => (a -> b) -> t a -> t a
 ordNubOn p t = evalState (witherM f t) Set.empty where
-    f a = let b = p a in state $ \s -> if Set.member b s
+    f a = state $ \s ->
+#if MIN_VERSION_containers(0,6,3)
+      -- insert in one go
+      -- having if outside is important for performance,
+      -- \x -> (if x ... , True)  -- is slower
+      case Set.alterF (\x -> BoolPair x True) (p a) s of
+        BoolPair True  s' -> (Nothing, s')
+        BoolPair False s' -> (Just a,  s')
+#else
+      if Set.member (p a) s
       then (Nothing, s)
-      else (Just a, Set.insert b s)
+      else (Just a, Set.insert (p a) s)
+#endif
 {-# INLINE ordNubOn #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
@@ -634,10 +644,17 @@ hashNub = hashNubOn id
 hashNubOn :: (Witherable t, Eq b, Hashable b) => (a -> b) -> t a -> t a
 hashNubOn p t = evalState (witherM f t) HSet.empty
   where
-    f a = let b = p a in state $ \s -> if HSet.member b s
-      then (Nothing, s)
-      else (Just a, HSet.insert b s)
+    f a = state $ \s ->
+      let g Nothing  = BoolPair False (Just ())
+          g (Just _) = BoolPair True  (Just ())
+      -- there is no HashSet.alterF, but toMap / fromMap are newtype wrappers.
+      in case HM.alterF g (p a) (HSet.toMap s) of
+        BoolPair True  s' -> (Nothing, HSet.fromMap s')
+        BoolPair False s' -> (Just a,  HSet.fromMap s')
 {-# INLINE hashNubOn #-}
+
+-- used to implement *Nub functions.
+data BoolPair a = BoolPair !Bool a deriving Functor
 
 -- | A default implementation for 'mapMaybe'.
 mapMaybeDefault :: (F.Foldable f, Alternative f) => (a -> Maybe b) -> f a -> f b

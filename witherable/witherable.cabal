@@ -30,7 +30,7 @@ library
                        hashable,
                        transformers,
                        transformers-compat,
-                       unordered-containers,
+                       unordered-containers >=0.2.12.0,
                        vector,
                        indexed-traversable,
                        indexed-traversable-instances,
