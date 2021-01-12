@@ -1,3 +1,8 @@
+0.4
+-------
+* `FilterableWithIndex` and `WitherableWithIndex` are now subclasses of the ones from [indexed-traversable](https://hackage.haskell.org/package/indexed-traversable)
+* Removed the orphan instances for `MonoidalMap`
+
 0.3.5
 -------
 
