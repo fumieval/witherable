@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE Trustworthy #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Witherable
@@ -22,7 +23,9 @@ module Witherable
   , (<&?>)
   , Witherable(..)
   , ordNub
+  , ordNubOn
   , hashNub
+  , hashNubOn
   , forMaybe
   -- * Indexed variants
   , FilterableWithIndex(..)
@@ -65,6 +68,11 @@ import qualified Data.Sequence as S
 import qualified Data.Set as Set
 import qualified Data.Traversable as T
 import qualified Data.Vector as V
+import qualified Data.Vector.Generic as VG
+import qualified Data.Vector.Fusion.Bundle as V.B
+import qualified Data.Vector.Fusion.Bundle.Size as V.BS
+import qualified Data.Vector.Fusion.Bundle.Monadic as V.MB
+import qualified Data.Vector.Fusion.Stream.Monadic as V.MS
 import qualified GHC.Generics as Generics
 import qualified Prelude
 
@@ -237,11 +245,43 @@ instance Witherable (Const r) where
   {-# INLINABLE wither #-}
 
 instance Filterable V.Vector where
+  filter   = V.filter
   mapMaybe = V.mapMaybe
 
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
   {-# INLINABLE wither #-}
+
+  witherM f = unstreamM . bundleWitherM f . V.B.lift . VG.stream
+  {-# INLINE witherM #-}
+
+-- This is not yet in any released Vector
+unstreamM :: Monad m => V.MB.Bundle m v a -> m (V.Vector a)
+unstreamM s = do
+  xs <- V.MB.toList s
+  return $ VG.unstream $ V.B.unsafeFromList (V.MB.size s) xs
+{-# INLINE unstreamM #-}
+
+bundleWitherM :: Monad m => (a -> m (Maybe b)) -> V.MB.Bundle m v a -> V.MB.Bundle m v b
+bundleWitherM g V.MB.Bundle {V.MB.sElems = s, V.MB.sSize = n} =
+  V.MB.fromStream (streamWitherM g s) (V.BS.toMax n)
+{-# INLINE bundleWitherM #-}
+
+streamWitherM :: Monad m => (a -> m (Maybe b)) -> V.MS.Stream m a -> V.MS.Stream m b
+streamWitherM g (V.MS.Stream step t) = V.MS.Stream step' t
+  where
+    {-# INLINE step' #-}
+    step' s = do
+      r <- step s
+      case r of
+        V.MS.Yield x s' -> do
+          b <- g x
+          case b of
+            Just y  -> return $ V.MS.Yield y s'
+            Nothing -> return $ V.MS.Skip    s'
+        V.MS.Skip    s' -> return $ V.MS.Skip s'
+        V.MS.Done       -> return $ V.MS.Done
+{-# INLINE streamWitherM #-}
 
 instance Filterable S.Seq where
   mapMaybe f = S.fromList . mapMaybe f . F.toList
@@ -591,23 +631,68 @@ forMaybe = flip wither
 -- | Removes duplicate elements from a list, keeping only the first
 --   occurrence. This is asymptotically faster than using
 --   'Data.List.nub' from "Data.List".
+--
+-- >>> ordNub [3,2,1,3,2,1]
+-- [3,2,1]
+--
 ordNub :: (Witherable t, Ord a) => t a -> t a
-ordNub t = evalState (witherM f t) Set.empty where
-    f a = state $ \s -> if Set.member a s
-      then (Nothing, s)
-      else (Just a, Set.insert a s)
+ordNub = ordNubOn id
 {-# INLINE ordNub #-}
+
+-- | The 'ordNubOn' function behaves just like 'ordNub',
+--   except it uses a another type to determine equivalence classes.
+--
+-- >>> ordNubOn fst [(True, 'x'), (False, 'y'), (True, 'z')]
+-- [(True,'x'),(False,'y')]
+--
+ordNubOn :: (Witherable t, Ord b) => (a -> b) -> t a -> t a
+ordNubOn p t = evalState (witherM f t) Set.empty where
+    f a = state $ \s ->
+#if MIN_VERSION_containers(0,6,3)
+      -- insert in one go
+      -- having if outside is important for performance,
+      -- \x -> (if x ... , True)  -- is slower
+      case Set.alterF (\x -> BoolPair x True) (p a) s of
+        BoolPair True  s' -> (Nothing, s')
+        BoolPair False s' -> (Just a,  s')
+#else
+      if Set.member (p a) s
+      then (Nothing, s)
+      else (Just a, Set.insert (p a) s)
+#endif
+{-# INLINE ordNubOn #-}
 
 -- | Removes duplicate elements from a list, keeping only the first
 --   occurrence. This is usually faster than 'ordNub', especially for
 --   things that have a slow comparison (like 'String').
+--
+-- >>> hashNub [3,2,1,3,2,1]
+-- [3,2,1]
+--
 hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
-hashNub t = evalState (witherM f t) HSet.empty
-  where
-    f a = state $ \s -> if HSet.member a s
-      then (Nothing, s)
-      else (Just a, HSet.insert a s)
+hashNub = hashNubOn id
 {-# INLINE hashNub #-}
+
+-- | The 'hashNubOn' function behaves just like 'ordNub',
+--   except it uses a another type to determine equivalence classes.
+--
+-- >>> hashNubOn fst [(True, 'x'), (False, 'y'), (True, 'z')]
+-- [(True,'x'),(False,'y')]
+--
+hashNubOn :: (Witherable t, Eq b, Hashable b) => (a -> b) -> t a -> t a
+hashNubOn p t = evalState (witherM f t) HSet.empty
+  where
+    f a = state $ \s ->
+      let g Nothing  = BoolPair False (Just ())
+          g (Just _) = BoolPair True  (Just ())
+      -- there is no HashSet.alterF, but toMap / fromMap are newtype wrappers.
+      in case HM.alterF g (p a) (HSet.toMap s) of
+        BoolPair True  s' -> (Nothing, HSet.fromMap s')
+        BoolPair False s' -> (Just a,  HSet.fromMap s')
+{-# INLINE hashNubOn #-}
+
+-- used to implement *Nub functions.
+data BoolPair a = BoolPair !Bool a deriving Functor
 
 -- | A default implementation for 'mapMaybe'.
 mapMaybeDefault :: (F.Foldable f, Alternative f) => (a -> Maybe b) -> f a -> f b

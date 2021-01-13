@@ -18,7 +18,7 @@ source-repository head
 
 library
   exposed-modules:     Data.Witherable.Class
-  build-depends:       base >= 4.8 && <5
+  build-depends:       base >= 4.9 && <5
     , containers ^>= 0.6
     , transformers ^>= 0.5
     , unordered-containers ^>= 0.2
