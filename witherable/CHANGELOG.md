@@ -4,6 +4,7 @@
 * Use `alterF` for nub-function implementations
 * Implement `witherM` in `Witherable Vector` instance.
 * Mark modules as Trustworthy
+* `ordNub` and `hashNub` are productive, start to produce results immediately and work for infinite lists.
 
 0.4
 -------
