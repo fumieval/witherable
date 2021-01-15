@@ -1,8 +1,8 @@
 # Revision history for witherable-class
 
-## 0.1
+## 0.0.1
 
-* Moved `FilterableWithIndex` and `WitherableWithIndex` from `witherable` to `witherable-class`. They are subclasses of `FunctorWithIndex` from [indexed-traversable](https://hackage.haskell.org/package/indexed-traversable) instead of `lens`
+* Package is deprecated. Use `witherable`.
 
 ## 0 - 2019/12/20
 
