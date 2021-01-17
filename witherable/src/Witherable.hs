@@ -40,7 +40,7 @@ import Control.Applicative
 import Control.Applicative.Backwards (Backwards (..))
 import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.State.Strict
+import Control.Monad.Trans.State.Lazy (evalState, state)
 import Data.Bool (bool)
 import Data.Coerce (coerce)
 import Data.Foldable.WithIndex

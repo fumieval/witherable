@@ -148,6 +148,8 @@ nubProperties = testGroup "nub"
   , testProperty "ordNubOn" prop_ordNubOn
   , testProperty "hashNub" prop_hashNub
   , testProperty "hashNubOn" prop_hashNubOn
+  , testProperty "ordNub is lazy" prop_lazy_ordNub
+  , testProperty "hashNub is lazy" prop_lazy_hashNub
   ]
   where
     prop_ordNub :: [A] -> Property
@@ -165,6 +167,12 @@ nubProperties = testGroup "nub"
     prop_hashNubOn f' xs = nubBy ((==) `on` f) xs === hashNubOn f xs
       where
         f = applyFun f'
+
+    prop_lazy_ordNub :: Property
+    prop_lazy_ordNub = take 3 (ordNub ('x' : 'y' : 'z' : 'z' : error "bottom")) === "xyz"
+
+    prop_lazy_hashNub :: Property
+    prop_lazy_hashNub = take 3 (hashNub ('x' : 'y' : 'z' : 'z' : error "bottom")) === "xyz"
 
 -------------------------------------------------------------------------------
 -- "Poly"
