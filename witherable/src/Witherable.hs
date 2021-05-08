@@ -104,27 +104,50 @@ class Functor f => Filterable f where
 --
 -- A definition of 'wither' must satisfy the following laws:
 --
--- [/conservation/]
---   @'wither' ('fmap' 'Just' . f) ≡ 'traverse' f@
+-- [/identity/]
+--   @'wither' ('Data.Functor.Identity' . Just) ≡ 'Data.Functor.Identity'@
 --
 -- [/composition/]
 --   @'Compose' . 'fmap' ('wither' f) . 'wither' g ≡ 'wither' ('Compose' . 'fmap' ('wither' f) . g)@
 --
 -- Parametricity implies the naturality law:
 --
--- Whenever @t@ is an //applicative transformation// in the sense described in the
--- 'Traversable' documentation,
---
+-- [/naturality/]
 --   @t . 'wither' f ≡ 'wither' (t . f)@
 --
--- See the @Properties.md@ file in the git distribution for some special properties of
--- empty containers.
+--     Where @t@ is an //applicative transformation// in the sense described in the
+--     'Traversable' documentation.
+-- 
+-- In the relation to superclasses, these should satisfy too:
+--
+-- [/conservation/]
+--    @'wither' ('fmap' Just . f) = 'T.traverse' f@
+--
+-- [/pure filter/]
+--    @'wither' ('Data.Functor.Identity' . f) = 'Data.Functor.Identity' . 'mapMaybe' f@
+-- 
+-- See the @Properties.md@ and @Laws.md@ files in the git distribution for more
+-- in-depth explanation about properties of @Witherable@ containers.
+--
+-- The laws and restrictions are enough to
+-- constrain @'wither'@ to be uniquely determined as the following default implementation.
+-- 
+-- @wither f = fmap 'catMaybes' . 'T.traverse' f@
+-- 
+-- If not to provide better-performing implementation,
+-- it's not necessary to implement any one method of
+-- @Witherable@. For example, if a type constructor @T@
+-- already has instances of 'T.Traversable' and 'Filterable',
+-- the next one line is sufficient to provide the @Witherable T@ instance.
+--
+-- > instance Witherable T
 
 class (T.Traversable t, Filterable t) => Witherable t where
 
   -- | Effectful 'mapMaybe'.
   --
   -- @'wither' ('pure' . f) ≡ 'pure' . 'mapMaybe' f@
+  -- 
   wither :: Applicative f => (a -> f (Maybe b)) -> t a -> f (t b)
   wither f = fmap catMaybes . T.traverse f
   {-# INLINE wither #-}
