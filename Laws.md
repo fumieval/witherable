@@ -171,7 +171,7 @@ These facts follow from the laws.
 From the above laws, it can be proven that lawful `wither` is unique given
 `traverse` and `mapMaybe`:
 
-* **Canonical**
+* **Canonicity**
 
   ```haskell
   wither f = fmap catMaybes . traverse f
@@ -204,7 +204,7 @@ fmap catMaybes . traverse f = wither f
 
 These two laws are equivalent to the above set of laws.
 
-* **Canonical**
+* **Canonicity**
 
   ```haskell
   wither f = fmap catMaybes . traverse f
@@ -216,7 +216,7 @@ These two laws are equivalent to the above set of laws.
   traverse f . catMaybes = fmap catMaybes . traverse (traverse f)
   ```
 
-It's already showed that the original laws imply **Canonical**.
+It's already showed that the original laws imply **Canonicity**.
 They imply **Distributivity** too.
 
 _Proof._
@@ -230,7 +230,7 @@ Compose . Identity . traverse f . catMaybes
  = wither (Compose . Identity . traverse f)
    -- (Compose . Identity) is an applicative transformation
  = Compose . Identity . wither (traverse f)
-   -- Canonical is already proven equation
+   -- Canonicity is already proven equation
  = Compose . Identity . fmap catMaybes . traverse (traverse f)
 
 And (Compose . Identity) is isomorphism. We can conclude
@@ -238,7 +238,7 @@ And (Compose . Identity) is isomorphism. We can conclude
 traverse f . catMaybes = fmap catMaybes . traverse (traverse f)
 ```
 
-Then let's do the other direction. **Canonical** + **Distributivity**,
+Then let's do the other direction. **Canonicity** + **Distributivity**,
 along with `Filterable` and `Traversable` laws,
 prove all three of `Witherable` laws + **Conservation** + **Pure filter**.
 
@@ -246,18 +246,18 @@ _Proof._
 ```haskell
 -- Naturality
 n . wither f
-   -- Canonical
+   -- Canonicity
  = n . fmap catMaybes . traverse f
    -- n is natural transformation
  = fmap catMaybes . n . traverse f
    -- Naturality of traverse
  = fmap catMaybes . traverse (n . f)
-   -- Canonical
+   -- Canonicity
  = wither (n . f)
 
 -- Conservation
 wither (fmap Just . f)
-   -- Canonical
+   -- Canonicity
  = fmap catMaybes . traverse (fmap Just . f)
  = fmap catMaybes . fmap (fmap Just) . traverse f
  = fmap (catMaybes . fmap Just) . traverse f
@@ -267,7 +267,7 @@ wither (fmap Just . f)
 
 -- Pure filter
 wither (Identity . f)
-   -- Canonical
+   -- Canonicity
  = fmap catMaybes . traverse (Identity . f)
    -- Traversable law, Identity
  = fmap catMaybes . Identity . fmap f
@@ -283,7 +283,7 @@ wither (Identity . Just)
 
 -- Composition
 Compose . fmap (wither g) . wither f
-   -- Canonical
+   -- Canonicity
  = Compose . fmap (fmap catMaybes . traverse g) . fmap catMaybes . traverse f
  = Compose . fmap (fmap catMaybes) . fmap (traverse g . catMaybes) . traverse f
    -- Distributivity
@@ -297,7 +297,7 @@ Compose . fmap (wither g) . wither f
  = fmap (catMaybes . fmap join) . traverse (Compose . fmap (traverse g) . f)
  = fmap catMaybes . fmap (fmap join) . traverse (Compose . fmap (traverse g) . f)
  = fmap catMaybes . traverse (fmap join . Compose . fmap (traverse g) . f)
-   -- Canonical
+   -- Canonicity
  = wither (Compose . fmap (fmap join . traverse g) . f)
    -- Definition of witherMaybe
  = wither (Compose . fmap (witherMaybe g) . f)
