@@ -96,7 +96,7 @@ instance Applicative (Peat a b) where
 
 -- | Reconstitute a 'Filter' from its monomorphic form.
 cloneFilter :: FilterLike (Peat a b) s t a b -> Filter s t a b
-cloneFilter l f = (`runPeat` f) . l (\a -> Peat $ \g -> g a)
+cloneFilter l f = (\a -> a `runPeat` f) . l (\a -> Peat $ \g -> g a)
 {-# INLINABLE cloneFilter #-}
 
 -- | 'witherOf' is actually 'id', but left for consistency.
