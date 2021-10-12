@@ -1,3 +1,9 @@
+0.4.2
+-------
+
+* Supported GHC 9.2
+* Improved the instances for `vector`
+
 0.4.1
 -------
 * Added `ordNubBy`, `hashNubBy`, `ordNubByOf`, and `hashNubByOf`.
