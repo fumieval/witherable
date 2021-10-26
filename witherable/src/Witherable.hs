@@ -30,6 +30,8 @@ module Witherable
   -- * Indexed variants
   , FilterableWithIndex(..)
   , WitherableWithIndex(..)
+  -- * Non-Empty variants
+  , Filterable1 (..)
   -- * Wrapper
   , WrappedFoldable(..)
   )
@@ -64,6 +66,7 @@ import qualified Data.Foldable as F
 import qualified Data.HashMap.Lazy as HM
 import qualified Data.HashSet as HSet
 import qualified Data.IntMap.Lazy as IM
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Lazy as M
 import qualified Data.Maybe as Maybe
 import qualified Data.Sequence as S
@@ -598,6 +601,41 @@ instance WitherableWithIndex i t => WitherableWithIndex i (Backwards t) where
   iwither f (Backwards xs) = Backwards <$> iwither f xs
   iwitherM f (Backwards xs) = Backwards <$> iwitherM f xs
   ifilterA f (Backwards xs) = Backwards <$> ifilterA f xs
+
+-- | 
+--
+-- A definition of 'mapMaybe1' must satisfy the following laws:
+--
+-- [/conservation/]
+--   TODO: Here we need a type class to embed @nef@ in @f@.
+--   (or witness the Maybe (nef a) and f a isomorphism, other side would be generalization of 'Data.List.NonEmpty.nonEmpty')
+--   Without @f@, i.e. using @Maybe (nef b)@ results the embedding would be just 'Just'.
+--   With @f@ the types are so much nicer.
+--
+-- [/composition/]
+--   @'mapMaybe' f . 'mapMaybe1' g ≡ 'mapMaybe1' (f <=< g)@
+class (Filterable f, Functor nef) => Filterable1 f nef | nef -> f where
+  mapMaybe1 :: (a -> Maybe b) -> nef a -> f b
+  mapMaybe1 f = catMaybes1 . fmap f
+  {-# INLINE mapMaybe1 #-}
+
+  -- | @'catMaybes1' ≡ 'mapMaybe1' 'id'@
+  catMaybes1 :: nef (Maybe a) -> f a
+  catMaybes1 = mapMaybe1 id
+  {-# INLINE catMaybes1 #-}
+
+  -- | @'filter' f . 'filter1' g ≡ filter ('liftA2' ('&&') g f)@
+  filter1 :: (a -> Bool) -> nef a -> f a
+  filter1 f = mapMaybe1 $ \a -> if f a then Just a else Nothing
+  {-# INLINE filter1 #-}
+
+  {-# MINIMAL mapMaybe1 | catMaybes1 #-}
+
+instance Filterable1 [] NE.NonEmpty where
+  mapMaybe1 f (x NE.:| xs) = case f x of
+      Nothing -> mapMaybe f xs
+      Just y  -> y : mapMaybe f xs
+  filter1 = NE.filter
 
 -- | An infix alias for 'mapMaybe'. The name of the operator alludes
 -- to '<$>', and has the same fixity.

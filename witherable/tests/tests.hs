@@ -13,6 +13,7 @@ import Data.Coerce (coerce)
 import Data.Function (on)
 import Data.Functor.Compose (Compose (..))
 import Data.List (nub, nubBy)
+import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Typeable (Typeable, typeRep)
@@ -58,6 +59,10 @@ main = defaultMain $ testGroup "witherable"
     , witherableLaws (Proxy @(HashMap.HashMap K))
     -- Wicked is not Witherable, see https://github.com/fumieval/witherable/issues/63#issuecomment-834631975
     -- , witherableLaws (Proxy @Wicked)
+    ]
+
+  , testGroup "Filterable1"
+    [ filterable1Laws (Proxy @NonEmpty)
     ]
 
   , nubProperties
@@ -111,6 +116,48 @@ filterableLaws p = testGroup (show (typeRep p))
 
     prop_default_catMaybes :: f (Maybe A) -> Property
     prop_default_catMaybes xs = catMaybes xs === mapMaybe id xs
+
+-------------------------------------------------------------------------------
+-- Filterable1 laws
+-------------------------------------------------------------------------------
+
+filterable1Laws
+  :: forall nef f.
+     ( Filterable1 f nef, Typeable nef
+     , Arbitrary (nef A), Show (nef A), Show (f A), Eq (f A)
+     , Arbitrary (nef (Maybe A)), Show (nef (Maybe A))
+     , Show (f B), Eq (f B), Show (f C), Eq (f C)
+     )
+  => Proxy nef
+  -> TestTree
+filterable1Laws p = testGroup (show (typeRep p))
+  [ testProperty "composition" prop_composition
+  , testProperty "default filter1" prop_default_filter
+  , testProperty "default mapMaybe1" prop_default_mapMaybe
+  , testProperty "default catMaybes1" prop_default_catMaybes
+  ]
+  where
+    prop_composition :: Fun B (Maybe C) -> Fun A (Maybe B) -> nef A -> Property
+    prop_composition f' g' xs =
+        mapMaybe f (mapMaybe1 g xs) === mapMaybe1 (f <=< g) xs
+      where
+        f = applyFun f'
+        g = applyFun g'
+
+    prop_default_filter :: Fun A Bool -> nef A -> Property
+    prop_default_filter f' xs =
+        filter1 f xs === mapMaybe1 (\a -> if f a then Just a else Nothing) xs
+      where
+        f = applyFun f'
+
+    prop_default_mapMaybe :: Fun A (Maybe B) -> nef A -> Property
+    prop_default_mapMaybe f' xs =
+        mapMaybe1 f xs === catMaybes1 (fmap f xs)
+      where
+        f = applyFun f'
+
+    prop_default_catMaybes :: nef (Maybe A) -> Property
+    prop_default_catMaybes xs = catMaybes1 xs === mapMaybe1 id xs
 
 -------------------------------------------------------------------------------
 -- Witherable laws
