@@ -27,6 +27,7 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Map.Lazy as Map
 import qualified Data.Vector as V
 import qualified Data.Sequence as Seq
+import qualified Data.Tree.Woods as W
 
 import Witherable
 import Prelude hiding (filter)
@@ -43,6 +44,7 @@ main = defaultMain $ testGroup "witherable"
     , filterableLaws (Proxy @(Map.Map K))
     , filterableLaws (Proxy @(HashMap.HashMap K))
     , filterableLaws (Proxy @Wicked)
+    , filterableLaws (Proxy @W.Woods)
     ]
 
   , testGroup "Witherable"
@@ -318,3 +320,7 @@ instance Witherable Wicked
 instance Arbitrary a => Arbitrary (Wicked a) where
     arbitrary = W <$> arbitrary
     shrink (W xs) = map W (shrink xs)
+
+instance Arbitrary a => Arbitrary (W.Woods a) where
+    arbitrary = W.Woods <$> arbitrary
+    shrink (W.Woods ws) = map W.Woods (shrink ws)

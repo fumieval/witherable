@@ -72,6 +72,7 @@ import qualified Data.Maybe as Maybe
 import qualified Data.Sequence as S
 import qualified Data.Set as Set
 import qualified Data.Traversable as T
+import qualified Data.Tree.Woods as W
 import qualified Data.Vector as V
 import qualified GHC.Generics as Generics
 import qualified Prelude
@@ -466,6 +467,9 @@ instance (T.Traversable f, Witherable g) => Witherable ((Generics.:.:) f g) wher
   wither f = fmap Generics.Comp1 . T.traverse (wither f) . Generics.unComp1
   witherM f = fmap Generics.Comp1 . T.mapM (witherM f) . Generics.unComp1
   filterA f = fmap Generics.Comp1 . T.traverse (filterA f) . Generics.unComp1
+
+instance Filterable W.Woods where
+  mapMaybe = W.woodsMapMaybe
 
 -- | Indexed variant of 'Filterable'.
 class (FunctorWithIndex i t, Filterable t) => FilterableWithIndex i t | t -> i where
