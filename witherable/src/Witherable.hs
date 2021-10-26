@@ -72,6 +72,7 @@ import qualified Data.Maybe as Maybe
 import qualified Data.Sequence as S
 import qualified Data.Set as Set
 import qualified Data.Traversable as T
+import qualified Data.Tree as Tree
 import qualified Data.Tree.Woods as W
 import qualified Data.Vector as V
 import qualified GHC.Generics as Generics
@@ -634,6 +635,15 @@ class (Filterable f, Functor nef) => Filterable1 f nef | nef -> f where
   {-# INLINE filter1 #-}
 
   {-# MINIMAL mapMaybe1 | catMaybes1 #-}
+
+instance Filterable W.MaybeTree where
+  mapMaybe _ (W.MaybeTree Nothing)     = W.MaybeTree Nothing
+  mapMaybe f (W.MaybeTree (Just tree)) = mapMaybe1 f tree
+
+instance Filterable1 W.MaybeTree Tree.Tree where
+  mapMaybe1 f (Tree.Node x xs) = case f x of
+      Just y -> W.MaybeTree (Just (Tree.Node y (W.forestMapMaybe f xs)))
+      Nothing -> W.MaybeTree (Nothing)
 
 instance Filterable1 [] NE.NonEmpty where
   mapMaybe1 f (x NE.:| xs) = case f x of

@@ -4,6 +4,9 @@ module Data.Tree.Woods where
 import Data.Tree (Tree (..), Forest)
 import Data.Maybe (mapMaybe)
 
+newtype MaybeTree a = MaybeTree (Maybe (Tree a))
+  deriving (Eq, Show, Functor)
+
 newtype Woods a = Woods { unWoods :: Forest a }
   deriving (Eq, Show, Functor)
 

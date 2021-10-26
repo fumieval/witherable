@@ -27,6 +27,7 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Map.Lazy as Map
 import qualified Data.Vector as V
 import qualified Data.Sequence as Seq
+import qualified Data.Tree as Tree
 import qualified Data.Tree.Woods as W
 
 import Witherable
@@ -65,6 +66,7 @@ main = defaultMain $ testGroup "witherable"
 
   , testGroup "Filterable1"
     [ filterable1Laws (Proxy @NonEmpty)
+    , filterable1Laws (Proxy @Tree.Tree)
     ]
 
   , nubProperties
