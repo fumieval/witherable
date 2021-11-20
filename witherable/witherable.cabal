@@ -1,6 +1,7 @@
 cabal-version:       2.4
 name:                witherable
 version:             0.4.2
+x-revision:          1
 synopsis:            filterable traversable
 description:         A stronger variant of `traverse` which can remove elements and generalised mapMaybe, catMaybes, filter
 homepage:            https://github.com/fumieval/witherable
@@ -12,7 +13,7 @@ copyright:           Copyright (c) 2014 Fumiaki Kinoshita
 category:            Data
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
-tested-with:         GHC ==8.0.2 || ==8.2.2 || ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.4 || ==9.0.1
+tested-with:         GHC ==8.0.2 || ==8.2.2 || ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.7 || ==9.0.1 || ==9.2.1
 
 source-repository head
   type: git
@@ -26,8 +27,8 @@ library
   build-depends:       base                          >=4.9      && <5,
                        base-orphans                  >=0.8.4    && <0.9,
                        containers                    >=0.5.7.1  && <0.7,
-                       hashable                      >=1.2.7.0  && <1.4,
-                       transformers                  >=0.5.2.0  && <0.6,
+                       hashable                      >=1.2.7.0  && <1.5,
+                       transformers                  >=0.5.2.0  && <0.7,
                        unordered-containers          >=0.2.12.0 && <0.3,
                        vector                        >=0.12.2.0 && <0.13,
                        indexed-traversable           >=0.1.1    && <0.2,
