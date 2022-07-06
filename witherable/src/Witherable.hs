@@ -669,7 +669,7 @@ hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
 hashNub = hashNubOn id
 {-# INLINE hashNub #-}
 
--- | The 'hashNubOn' function behaves just like 'ordNub',
+-- | The 'hashNubOn' function behaves just like 'hashNub',
 --   except it uses a another type to determine equivalence classes.
 --
 -- >>> hashNubOn fst [(True, 'x'), (False, 'y'), (True, 'z')]
