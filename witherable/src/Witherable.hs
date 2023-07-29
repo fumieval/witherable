@@ -27,6 +27,7 @@ module Witherable
   , hashNub
   , hashNubOn
   , forMaybe
+  , partitionEithers
   -- * Indexed variants
   , FilterableWithIndex(..)
   , WitherableWithIndex(..)
@@ -60,6 +61,7 @@ import Data.Semigroup (Option (..))
 import Data.Traversable.WithIndex
 import Data.Void
 import Prelude hiding (filter)
+import qualified Data.Either as Either
 import qualified Data.Foldable as F
 import qualified Data.HashMap.Lazy as HM
 import qualified Data.HashSet as HSet
@@ -99,6 +101,20 @@ class Functor f => Filterable f where
   filter :: (a -> Bool) -> f a -> f a
   filter f = mapMaybe $ \a -> if f a then Just a else Nothing
   {-# INLINE filter #-}
+
+  -- | Split the 'Filterable' two parts, with the first containing
+  --   the `Left` elements, and the second containing the `Right`
+  --   elements.
+  partitionWith :: (a -> Either b c) -> f a -> (f b, f c)
+  partitionWith f els = (mapMaybe (leftToMaybe . f) els, mapMaybe (rightToMaybe . f) els)
+    where
+      leftToMaybe :: Either a b -> Maybe a
+      leftToMaybe (Left a) = Just a
+      leftToMaybe _ = Nothing
+
+      rightToMaybe :: Either a b -> Maybe b
+      rightToMaybe (Right a) = Just a
+      rightToMaybe _ = Nothing
 
   {-# MINIMAL mapMaybe | catMaybes #-}
 
@@ -165,6 +181,12 @@ class (T.Traversable t, Filterable t) => Witherable t where
   witherMap p f = fmap p . wither f
   {-# INLINE witherMap #-}
 
+  -- | Effectful `partitionWith`.
+  --
+  -- @'partitionWithA' ('pure' . f) ≡ 'pure' . 'partitionWith' f@
+  partitionWithA :: Applicative f => (a -> f (Either b c)) -> t a -> f (t b, t c)
+  partitionWithA f els = partitionEithers <$> traverse f els
+
   {-# MINIMAL #-}
 
 instance Filterable Maybe where
@@ -206,6 +228,7 @@ instance Filterable [] where
   mapMaybe = Maybe.mapMaybe
   catMaybes = Maybe.catMaybes
   filter = Prelude.filter
+  partitionWith f = Either.partitionEithers . fmap f
 
 instance Filterable ZipList where
   mapMaybe f = ZipList . Maybe.mapMaybe f . getZipList
@@ -236,12 +259,14 @@ instance Witherable ZipList where
 instance Filterable IM.IntMap where
   mapMaybe = IM.mapMaybe
   filter = IM.filter
+  partitionWith = IM.mapEither
 
 instance Witherable IM.IntMap where
 
 instance Filterable (M.Map k) where
   mapMaybe = M.mapMaybe
   filter = M.filter
+  partitionWith = M.mapEither
 
 instance Witherable (M.Map k) where
 #if MIN_VERSION_containers(0,5,8)
@@ -271,6 +296,7 @@ instance Witherable (Const r) where
 instance Filterable V.Vector where
   filter   = V.filter
   mapMaybe = V.mapMaybe
+  partitionWith = V.partitionWith
 
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
@@ -668,6 +694,12 @@ ordNubOn p t = evalState (witherM f t) Set.empty where
 hashNub :: (Witherable t, Eq a, Hashable a) => t a -> t a
 hashNub = hashNubOn id
 {-# INLINE hashNub #-}
+
+-- | Partitions 'Filterable' of 'Either's into two 'Filterable's.
+--   The first component contains all the 'Left' elements, the
+--   second component contains all the 'Right' elements.
+partitionEithers :: Filterable t => t (Either a b) -> (t a, t b)
+partitionEithers = partitionWith id
 
 -- | The 'hashNubOn' function behaves just like 'hashNub',
 --   except it uses a another type to determine equivalence classes.
