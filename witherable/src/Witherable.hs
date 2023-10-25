@@ -475,14 +475,6 @@ instance FilterableWithIndex () Maybe
 
 instance WitherableWithIndex () Maybe
 
-instance FilterableWithIndex Int []
-
-instance FilterableWithIndex Int ZipList
-
-instance WitherableWithIndex Int []
-
-instance WitherableWithIndex Int ZipList
-
 instance FilterableWithIndex Int IM.IntMap where
   imapMaybe = IM.mapMaybeWithKey
   ifilter = IM.filterWithKey
@@ -507,16 +499,6 @@ instance (Eq k, Hashable k) => WitherableWithIndex k (HM.HashMap k) where
 instance FilterableWithIndex Void Proxy
 
 instance WitherableWithIndex Void Proxy
-
-instance FilterableWithIndex Int V.Vector where
-  imapMaybe = V.imapMaybe
-  ifilter = V.ifilter
-
-instance WitherableWithIndex Int V.Vector
-
-instance FilterableWithIndex Int S.Seq
-
-instance WitherableWithIndex Int S.Seq
 
 instance (FunctorWithIndex i f, FilterableWithIndex j g) => FilterableWithIndex (i, j) (Compose f g) where
   imapMaybe f = Compose . imap (\i -> imapMaybe (\j -> f (i, j))) . getCompose
