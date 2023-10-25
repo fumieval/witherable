@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                witherable
-version:             0.4.2
+version:             0.5.0
 x-revision:          3
 synopsis:            filterable traversable
 description:         A stronger variant of `traverse` which can remove elements and generalised mapMaybe, catMaybes, filter

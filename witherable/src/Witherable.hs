@@ -54,9 +54,6 @@ import Data.Hashable
 import Data.Monoid
 import Data.Orphans ()
 import Data.Proxy
-#if !MIN_VERSION_base(4,16,0)
-import Data.Semigroup (Option (..))
-#endif
 import Data.Traversable.WithIndex
 import Data.Void
 import Prelude hiding (filter)
@@ -175,22 +172,6 @@ instance Witherable Maybe where
   wither _ Nothing = pure Nothing
   wither f (Just a) = f a
   {-# INLINABLE wither #-}
-
-#if !MIN_VERSION_base(4,16,0)
-
-instance Filterable Option where
-  mapMaybe f = (>>= Option . f)
-  {-# INLINE mapMaybe #-}
-
-instance Witherable Option where
-  wither f (Option x) = Option <$> wither f x
-  {-# INLINE wither #-}
-
--- Option doesn't have the necessary instances in Lens
---instance FilterableWithIndex () Option
---instance WitherableWithIndex () Option
-
-#endif
 
 instance Monoid e => Filterable (Either e) where
   mapMaybe _ (Left e) = Left e
@@ -493,10 +474,6 @@ class (TraversableWithIndex i t, Witherable t) => WitherableWithIndex i t | t ->
 instance FilterableWithIndex () Maybe
 
 instance WitherableWithIndex () Maybe
-
--- Option doesn't have the necessary instances in Lens
---instance FilterableWithIndex () Option
---instance WitherableWithIndex () Option
 
 instance FilterableWithIndex Int []
 
