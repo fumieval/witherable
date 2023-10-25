@@ -476,7 +476,7 @@ class (FunctorWithIndex i t, Filterable t) => FilterableWithIndex i t | t -> i w
   {-# INLINE ifilter #-}
 
 -- | Indexed variant of 'Witherable'.
-class (TraversableWithIndex i t, Witherable t) => WitherableWithIndex i t | t -> i where
+class (TraversableWithIndex i t, FilterableWithIndex i t, Witherable t) => WitherableWithIndex i t | t -> i where
   -- | Effectful 'imapMaybe'.
   --
   -- @'iwither' (\ i -> 'pure' . f i) ≡ 'pure' . 'imapMaybe' f@
