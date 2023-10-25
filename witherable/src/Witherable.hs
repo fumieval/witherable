@@ -9,7 +9,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Witherable
--- Copyright   :  (c) Fumiaki Kinoshita 2020
+-- Copyright   :  (c) Fumiaki Kinoshita 2020-23
 -- License     :  BSD3
 --
 -- Maintainer  :  Fumiaki Kinoshita <fumiexcel@gmail.com>
@@ -26,6 +26,7 @@ module Witherable
   , ordNubOn
   , hashNub
   , hashNubOn
+  , defaultiwither
   , forMaybe
   -- * Indexed variants
   , FilterableWithIndex(..)
@@ -489,6 +490,13 @@ class (TraversableWithIndex i t, Witherable t) => WitherableWithIndex i t | t ->
 
   ifilterA :: (Applicative f) => (i -> a -> f Bool) -> t a -> f (t a)
   ifilterA f = iwither (\i a -> (\b -> if b then Just a else Nothing) <$> f i a)
+
+-- | The conditions under which 'iwither' is defined are weaker than
+-- 'Witherable': for example, lists, vectors and sequences do not have
+-- lawful 'Witherable' instances but this function may nevertheless be
+-- useful.
+defaultiwither :: (Applicative f, Filterable t, TraversableWithIndex i t) => (i -> a -> f (Maybe b)) -> t a -> f (t b)
+defaultiwither f = fmap catMaybes . itraverse f
 
 instance FilterableWithIndex () Maybe
 
