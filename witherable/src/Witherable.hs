@@ -190,6 +190,7 @@ instance Witherable Maybe where
 
 instance Filterable Option where
   mapMaybe f = (>>= Option . f)
+  drain _ = Option Nothing
   {-# INLINE mapMaybe #-}
 
 instance Witherable Option where
@@ -206,6 +207,9 @@ instance Monoid e => Filterable (Either e) where
   mapMaybe _ (Left e) = Left e
   mapMaybe f (Right a) = maybe (Left mempty) Right $ f a
   {-# INLINABLE mapMaybe #-}
+
+  drain (Left e)  = Left e
+  drain (Right _) = Left mempty
 
 instance Monoid e => Witherable (Either e) where
   wither _ (Left e) = pure (Left e)
