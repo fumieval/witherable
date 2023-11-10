@@ -470,7 +470,7 @@ class (FunctorWithIndex i t, Filterable t) => FilterableWithIndex i t | t -> i w
   imapMaybe f = catMaybes . imap f
   {-# INLINE imapMaybe #-}
 
-  -- | @'ifilter' f . 'ifilter' g ≡ ifilter (\i -> 'liftA2' ('&&') (f i) (g i))@
+  -- | @'filter' f . 'ifilter' g ≡ ifilter (\i x -> f x '&&' g i x)@
   ifilter :: (i -> a -> Bool) -> t a -> t a
   ifilter f = imapMaybe $ \i a -> if f i a then Just a else Nothing
   {-# INLINE ifilter #-}

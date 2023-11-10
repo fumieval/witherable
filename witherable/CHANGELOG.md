@@ -2,6 +2,8 @@
 ---
 
 * `FilterableWithIndex` is a superclass of `WitherableWithIndex`.
+* Remove deprecated `Data.Witherable` module. Use `Witherable` module.
+* Relax `FilterableWithIndex` composition law so list-like instances are lawful.
 
 0.4.2
 -------
