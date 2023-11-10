@@ -4,6 +4,7 @@
 * `FilterableWithIndex` is a superclass of `WitherableWithIndex`.
 * Remove deprecated `Data.Witherable` module. Use `Witherable` module.
 * Relax `FilterableWithIndex` composition law so list-like instances are lawful.
+* Add `drain :: f a -> f b` method (with default implementation `drain = mapMaybe (Const Nothing)`) to the `Filterable`.
 
 0.4.2
 -------

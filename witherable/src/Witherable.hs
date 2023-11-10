@@ -84,6 +84,7 @@ import qualified Prelude
 --
 -- [/composition/]
 --   @'mapMaybe' f . 'mapMaybe' g ≡ 'mapMaybe' (f <=< g)@
+--
 class Functor f => Filterable f where
   -- | Like 'Maybe.mapMaybe'.
   mapMaybe :: (a -> Maybe b) -> f a -> f b
@@ -100,10 +101,13 @@ class Functor f => Filterable f where
   filter f = mapMaybe $ \a -> if f a then Just a else Nothing
   {-# INLINE filter #-}
 
-  -- | Empty a filterable; often this is a constant map.
-  flush :: f a -> f b
-  flush = mapMaybe (const Nothing)
-  {-# INLINE flush #-}
+  -- | Empty a filterable.
+  --
+  -- @'drain' ≡ 'mapMaybe' (const Nothing)@
+  --
+  drain :: f a -> f b
+  drain = mapMaybe (const Nothing)
+  {-# INLINE drain #-}
 
   {-# MINIMAL mapMaybe | catMaybes #-}
 
@@ -174,7 +178,7 @@ class (T.Traversable t, Filterable t) => Witherable t where
 
 instance Filterable Maybe where
   mapMaybe f = (>>= f)
-  flush _ = Nothing
+  drain _ = Nothing
   {-# INLINE mapMaybe #-}
 
 instance Witherable Maybe where
@@ -212,13 +216,13 @@ instance Filterable [] where
   mapMaybe = Maybe.mapMaybe
   catMaybes = Maybe.catMaybes
   filter = Prelude.filter
-  flush _ = []
+  drain _ = []
 
 instance Filterable ZipList where
   mapMaybe f = ZipList . Maybe.mapMaybe f . getZipList
   catMaybes = ZipList . Maybe.catMaybes . getZipList
   filter f = ZipList . Prelude.filter f . getZipList
-  flush _ = ZipList []
+  drain _ = ZipList []
 
 -- | Methods are good consumers for fusion.
 instance Witherable [] where
@@ -244,14 +248,14 @@ instance Witherable ZipList where
 instance Filterable IM.IntMap where
   mapMaybe = IM.mapMaybe
   filter = IM.filter
-  flush _ = IM.empty
+  drain _ = IM.empty
 
 instance Witherable IM.IntMap where
 
 instance Filterable (M.Map k) where
   mapMaybe = M.mapMaybe
   filter = M.filter
-  flush _ = M.empty
+  drain _ = M.empty
 
 instance Witherable (M.Map k) where
 #if MIN_VERSION_containers(0,5,8)
@@ -261,7 +265,7 @@ instance Witherable (M.Map k) where
 instance (Eq k, Hashable k) => Filterable (HM.HashMap k) where
   mapMaybe = HM.mapMaybe
   filter = HM.filter
-  flush _ = HM.empty
+  drain _ = HM.empty
 
 instance (Eq k, Hashable k) => Witherable (HM.HashMap k) where
 
@@ -282,7 +286,7 @@ instance Witherable (Const r) where
 instance Filterable V.Vector where
   filter   = V.filter
   mapMaybe = V.mapMaybe
-  flush _  = V.empty
+  drain _  = V.empty
 
 instance Witherable V.Vector where
   wither f = fmap V.fromList . wither f . V.toList
@@ -295,7 +299,7 @@ instance Filterable S.Seq where
   mapMaybe f = S.fromList . mapMaybe f . F.toList
   {-# INLINABLE mapMaybe #-}
   filter = S.filter
-  flush _ = S.empty
+  drain _ = S.empty
 
 instance Witherable S.Seq where
   wither f = fmap S.fromList . wither f . F.toList
@@ -326,7 +330,7 @@ instance (Functor f, Filterable g) => Filterable (Compose f g) where
   mapMaybe f = Compose . fmap (mapMaybe f) . getCompose
   filter p = Compose . fmap (filter p) . getCompose
   catMaybes = Compose . fmap catMaybes . getCompose
-  flush = Compose . fmap flush . getCompose
+  drain = Compose . fmap drain . getCompose
 
 instance (T.Traversable f, Witherable g) => Witherable (Compose f g) where
   wither f = fmap Compose . T.traverse (wither f) . getCompose
@@ -337,7 +341,7 @@ instance (Filterable f, Filterable g) => Filterable (P.Product f g) where
   mapMaybe f (P.Pair x y) = P.Pair (mapMaybe f x) (mapMaybe f y)
   filter p (P.Pair x y) = P.Pair (filter p x) (filter p y)
   catMaybes (P.Pair x y) = P.Pair (catMaybes x) (catMaybes y)
-  flush (P.Pair x y) = P.Pair (flush x) (flush y)
+  drain (P.Pair x y) = P.Pair (drain x) (drain y)
 
 instance (Witherable f, Witherable g) => Witherable (P.Product f g) where
   wither f (P.Pair x y) = liftA2 P.Pair (wither f x) (wither f y)
@@ -354,8 +358,8 @@ instance (Filterable f, Filterable g) => Filterable (Sum.Sum f g) where
   filter p (Sum.InL x) = Sum.InL (filter p x)
   filter p (Sum.InR y) = Sum.InR (filter p y)
 
-  flush (Sum.InL x) = Sum.InL (flush x)
-  flush (Sum.InR y) = Sum.InR (flush y)
+  drain (Sum.InL x) = Sum.InL (drain x)
+  drain (Sum.InR y) = Sum.InR (drain y)
 
 instance (Witherable f, Witherable g) => Witherable (Sum.Sum f g) where
   wither f (Sum.InL x) = Sum.InL <$> wither f x
