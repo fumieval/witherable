@@ -1,3 +1,8 @@
+0.5
+---
+
+* `FilterableWithIndex` is a superclass of `WitherableWithIndex`.
+
 0.4.2
 -------
 
