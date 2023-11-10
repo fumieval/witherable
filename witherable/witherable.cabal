@@ -22,7 +22,6 @@ source-repository head
 library
   exposed-modules:
     Witherable
-    Data.Witherable
   build-depends:       base                          >=4.9      && <5,
                        base-orphans                  >=0.8.4    && <0.10,
                        containers                    >=0.5.7.1  && <0.7,

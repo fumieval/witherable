@@ -2,6 +2,7 @@
 ---
 
 * `FilterableWithIndex` is a superclass of `WitherableWithIndex`.
+* Remove deprecated `Data.Witherable` module. Use `Witherable` module.
 
 0.4.2
 -------
